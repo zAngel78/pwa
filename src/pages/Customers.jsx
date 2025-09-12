@@ -16,6 +16,7 @@ const Customers = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(null);
 
   useEffect(() => {
     loadCustomers();
@@ -159,7 +160,11 @@ const Customers = () => {
                   {canManage && (
                     <Table.Cell>
                       <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setEditingCustomer(customer)}
+                        >
                           <Edit2 className="w-4 h-4" />
                         </Button>
                         <Button 
@@ -212,6 +217,18 @@ const Customers = () => {
           setCustomers(prev => [customer, ...prev]);
           setShowNewCustomer(false);
           toast.success('Cliente creado exitosamente');
+        }}
+      />
+
+      {/* Modal para editar cliente */}
+      <EditCustomerModal
+        isOpen={!!editingCustomer}
+        customer={editingCustomer}
+        onClose={() => setEditingCustomer(null)}
+        onSuccess={(updatedCustomer) => {
+          setCustomers(prev => prev.map(c => c._id === updatedCustomer._id ? updatedCustomer : c));
+          setEditingCustomer(null);
+          toast.success('Cliente actualizado exitosamente');
         }}
       />
     </div>
@@ -295,6 +312,101 @@ const NewCustomerModal = ({ isOpen, onClose, onSuccess }) => {
           </Button>
           <Button type="submit" loading={saving}>
             Crear Cliente
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
+// Modal para editar cliente
+const EditCustomerModal = ({ isOpen, customer, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    tax_id: '',
+    email: '',
+    phone: ''
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (customer) {
+      setFormData({
+        name: customer.name || '',
+        tax_id: customer.tax_id || '',
+        email: customer.email || '',
+        phone: customer.phone || ''
+      });
+    }
+  }, [customer]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.name.trim()) {
+      toast.error('El nombre es requerido');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      
+      // Agregar campo notes que espera el backend
+      const customerData = {
+        ...formData,
+        notes: customer.notes || ''
+      };
+      
+      const response = await customersAPI.update(customer._id, customerData);
+      onSuccess(response.data);
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      
+      // Mostrar detalles específicos del error de validación
+      if (error.details && Array.isArray(error.details)) {
+        const errorMessages = error.details.join(', ');
+        toast.error(`Error de validación: ${errorMessages}`);
+      } else {
+        toast.error(error.message || 'Error al actualizar cliente');
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal title="Editar Cliente" isOpen={isOpen} onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          label="Nombre"
+          value={formData.name}
+          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          required
+        />
+        <Input
+          label="RUT (opcional)"
+          value={formData.tax_id}
+          onChange={(e) => setFormData(prev => ({ ...prev, tax_id: e.target.value }))}
+          placeholder="12.345.678-9"
+        />
+        <Input
+          label="Email (opcional)"
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+        />
+        <Input
+          label="Teléfono (opcional)"
+          value={formData.phone}
+          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+        />
+        
+        <div className="flex gap-3 justify-end pt-4">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" loading={saving}>
+            Actualizar Cliente
           </Button>
         </div>
       </form>
