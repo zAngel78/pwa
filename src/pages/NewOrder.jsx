@@ -453,11 +453,26 @@ const NewCustomerModal = ({ isOpen, onClose, onSuccess }) => {
 
     try {
       setSaving(true);
-      const response = await customersAPI.create(formData);
+      
+      // Agregar campo notes que espera el backend
+      const customerData = {
+        ...formData,
+        notes: ''
+      };
+      
+      const response = await customersAPI.create(customerData);
       toast.success('Cliente creado exitosamente');
       onSuccess(response.data);
     } catch (error) {
-      toast.error(error.message || 'Error al crear cliente');
+      console.error('Error creating customer:', error);
+      
+      // Mostrar detalles específicos del error de validación
+      if (error.details && Array.isArray(error.details)) {
+        const errorMessages = error.details.join(', ');
+        toast.error(`Error de validación: ${errorMessages}`);
+      } else {
+        toast.error(error.message || 'Error al crear cliente');
+      }
     } finally {
       setSaving(false);
     }
