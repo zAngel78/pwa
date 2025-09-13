@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Home, 
-  Plus, 
-  Package, 
-  Users, 
-  User, 
-  LogOut, 
+import {
+  Home,
+  Plus,
+  Package,
+  Users,
+  User,
+  LogOut,
   Menu,
   X,
-  Printer
+  Printer,
+  ShoppingCart
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
+import NotificationManager from '../NotificationManager';
 import useAuthStore from '../../stores/authStore';
 
 const Header = () => {
@@ -21,7 +23,8 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home },
+    { name: 'Inicio', href: '/', icon: Home },
+    { name: 'Pedidos', href: '/orders', icon: ShoppingCart },
     { name: 'Nuevo Pedido', href: '/orders/new', icon: Plus },
     { name: 'Productos', href: '/products', icon: Package },
     { name: 'Clientes', href: '/customers', icon: Users },
@@ -112,6 +115,8 @@ const Header = () => {
 
             {/* Botones de acción */}
             <div className="flex items-center space-x-2">
+              <NotificationManager user={user} />
+
               <Button
                 variant="ghost"
                 size="sm"

@@ -7,6 +7,7 @@ import Header from './components/layout/Header';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import NewOrder from './pages/NewOrder';
+import Orders from './pages/Orders';
 import Products from './pages/Products';
 import Customers from './pages/Customers';
 import useAuthStore from './stores/authStore';
@@ -48,6 +49,7 @@ function App() {
                   <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
+                      <Route path="/orders" element={<Orders />} />
                       <Route path="/orders/new" element={<NewOrder />} />
                       <Route path="/products" element={<Products />} />
                       <Route path="/customers" element={<Customers />} />

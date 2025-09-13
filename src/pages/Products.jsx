@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Package, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Package, Edit2, Trash2, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import Card from '../components/ui/Card';
@@ -8,6 +8,7 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Table from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
+import BulkImport from '../components/BulkImport';
 import { formatCLP } from '../lib/utils';
 import { productsAPI } from '../services/api';
 import useAuthStore from '../stores/authStore';
@@ -19,6 +20,7 @@ const Products = () => {
   const [search, setSearch] = useState('');
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [showBulkImport, setShowBulkImport] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -82,10 +84,16 @@ const Products = () => {
           </p>
         </div>
         {canCreate && (
-          <Button onClick={() => setShowNewProduct(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo Producto
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowBulkImport(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Importar CSV
+            </Button>
+            <Button onClick={() => setShowNewProduct(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nuevo Producto
+            </Button>
+          </div>
         )}
       </div>
 
@@ -220,6 +228,19 @@ const Products = () => {
           setEditingProduct(null);
           toast.success('Producto actualizado exitosamente');
         }}
+      />
+
+      {/* Modal para importación masiva */}
+      <BulkImport
+        isOpen={showBulkImport}
+        onClose={() => setShowBulkImport(false)}
+        onSuccess={(importedProducts) => {
+          setProducts(prev => [...importedProducts, ...prev]);
+          setShowBulkImport(false);
+        }}
+        type="products"
+        title="Productos"
+        apiEndpoint={(data) => productsAPI.bulkCreate(data)}
       />
     </div>
   );

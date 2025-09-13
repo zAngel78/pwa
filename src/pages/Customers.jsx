@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Users, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Users, Edit2, Trash2, Printer, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import Card from '../components/ui/Card';
@@ -7,6 +7,7 @@ import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import Table from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
+import BulkImport from '../components/BulkImport';
 import { customersAPI } from '../services/api';
 import useAuthStore from '../stores/authStore';
 
@@ -17,6 +18,7 @@ const Customers = () => {
   const [search, setSearch] = useState('');
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
+  const [showBulkImport, setShowBulkImport] = useState(false);
 
   useEffect(() => {
     loadCustomers();
@@ -49,7 +51,7 @@ const Customers = () => {
 
   const handleDelete = async (customerId) => {
     if (!window.confirm('¿Estás seguro de eliminar este cliente?')) return;
-    
+
     try {
       await customersAPI.delete(customerId);
       toast.success('Cliente eliminado');
@@ -57,6 +59,61 @@ const Customers = () => {
     } catch (error) {
       toast.error('Error al eliminar cliente');
     }
+  };
+
+  const handlePrint = () => {
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Listado de Clientes</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #059669; text-align: center; margin-bottom: 30px; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th { background-color: #f8f9fa; font-weight: bold; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .footer { margin-top: 30px; text-align: center; color: #666; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <h1>Listado de Clientes</h1>
+          <p><strong>Fecha:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
+          <p><strong>Total de clientes:</strong> ${filteredCustomers.length}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>RUT</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Ciudad</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredCustomers.map(customer => `
+                <tr>
+                  <td>${customer.name}</td>
+                  <td>${customer.tax_id || '-'}</td>
+                  <td>${customer.email || '-'}</td>
+                  <td>${customer.phone || '-'}</td>
+                  <td>${customer.address?.city || '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="footer">
+            <p>Sistema de Pedidos y Facturación - Generado automáticamente</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   const canManage = user?.role === 'admin';
@@ -79,12 +136,24 @@ const Customers = () => {
             {customers.length} clientes registrados
           </p>
         </div>
-        {canCreate && (
-          <Button onClick={() => setShowNewCustomer(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo Cliente
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="w-4 h-4 mr-2" />
+            Imprimir
           </Button>
-        )}
+          {canCreate && (
+            <>
+              <Button variant="outline" onClick={() => setShowBulkImport(true)}>
+                <Upload className="w-4 h-4 mr-2" />
+                Importar CSV
+              </Button>
+              <Button onClick={() => setShowNewCustomer(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nuevo Cliente
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Búsqueda */}
@@ -230,6 +299,19 @@ const Customers = () => {
           setEditingCustomer(null);
           toast.success('Cliente actualizado exitosamente');
         }}
+      />
+
+      {/* Modal para importación masiva */}
+      <BulkImport
+        isOpen={showBulkImport}
+        onClose={() => setShowBulkImport(false)}
+        onSuccess={(importedCustomers) => {
+          setCustomers(prev => [...importedCustomers, ...prev]);
+          setShowBulkImport(false);
+        }}
+        type="customers"
+        title="Clientes"
+        apiEndpoint={(data) => customersAPI.bulkCreate(data)}
       />
     </div>
   );

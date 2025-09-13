@@ -53,6 +53,16 @@ export const API_ENDPOINTS = {
     TOP_CUSTOMERS: '/dashboard/top-customers',
   },
 
+  // Notifications
+  NOTIFICATIONS: {
+    TEST: '/notifications/test',
+    CONFIG: '/notifications/config',
+    UPDATE_CONFIG: '/notifications/config',
+    ADD_EXTRA_EMAIL: '/notifications/extra-email',
+    DELETE_EXTRA_EMAIL: (email) => `/notifications/extra-email/${email}`,
+    SYNC_USERS: '/notifications/sync-users',
+  },
+
   // Health
   HEALTH: {
     CHECK: '/health',

@@ -1,7 +1,7 @@
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { format, formatDistance, parseISO } from 'date-fns';
-// import { es } from 'date-fns/locale/es';
+// import { es } from 'date-fns/locale';
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -31,6 +31,7 @@ export const formatRelativeTime = (date) => {
   if (!date) return '—';
   return formatDistance(parseISO(date), new Date(), {
     addSuffix: true,
+    // locale: es // Comentado temporalmente por error de importación
   });
 };
 

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import Button from './Button';
 
@@ -48,18 +49,18 @@ const Modal = ({
     full: 'max-w-7xl',
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         {/* Overlay */}
-        <div 
+        <div
           className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-50"
           onClick={onClose}
         />
 
         {/* Modal */}
         <div className={`
-          inline-block w-full ${sizes[size]} my-8 overflow-hidden text-left align-middle transition-all transform 
+          inline-block w-full ${sizes[size]} my-8 overflow-hidden text-left align-middle transition-all transform
           bg-white shadow-xl rounded-2xl relative
         `}>
           {/* Header */}
@@ -89,7 +90,8 @@ const Modal = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

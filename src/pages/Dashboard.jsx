@@ -119,7 +119,7 @@ const Dashboard = () => {
       {/* Header simple */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Panel Principal</h1>
           <p className="text-gray-600">Resumen del negocio</p>
         </div>
         <Link to="/orders/new">
@@ -130,17 +130,17 @@ const Dashboard = () => {
         </Link>
       </div>
 
-      {/* KPIs simplificados */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* KPIs compactos */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {kpis.map((kpi, index) => (
-          <Card key={index} className="p-4">
+          <Card key={index} className="p-3">
             <div className="text-center">
-              <p className="text-sm text-gray-600">{kpi.title}</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-xs text-gray-600 mb-1">{kpi.title}</p>
+              <p className="text-xl font-bold text-gray-900">
                 {kpi.data.orders}
               </p>
-              <p className="text-sm text-gray-500">pedidos</p>
-              <p className="text-lg font-semibold text-emerald-600 mt-2">
+              <p className="text-xs text-gray-500">pedidos</p>
+              <p className="text-sm font-semibold text-emerald-600 mt-1">
                 {formatCLP(kpi.data.total)}
               </p>
             </div>
@@ -148,23 +148,23 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Estados rápidos */}
+      {/* Estados rápidos - compactos */}
       {metrics?.delivery && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="p-4 text-center">
-            <XCircle className="w-6 h-6 text-red-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-red-600">{metrics.delivery.overdue}</p>
-            <p className="text-sm text-gray-600">Vencidos</p>
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+          <Card className="p-2 text-center">
+            <XCircle className="w-4 h-4 text-red-600 mx-auto mb-1" />
+            <p className="text-lg font-bold text-red-600">{metrics.delivery.overdue}</p>
+            <p className="text-xs text-gray-600">Vencidos</p>
           </Card>
-          <Card className="p-4 text-center">
-            <Clock className="w-6 h-6 text-amber-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-amber-600">{metrics.delivery.pending}</p>
-            <p className="text-sm text-gray-600">Pendientes</p>
+          <Card className="p-2 text-center">
+            <Clock className="w-4 h-4 text-amber-600 mx-auto mb-1" />
+            <p className="text-lg font-bold text-amber-600">{metrics.delivery.pending}</p>
+            <p className="text-xs text-gray-600">Pendientes</p>
           </Card>
-          <Card className="p-4 text-center">
-            <CheckCircle className="w-6 h-6 text-green-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-green-600">{metrics.delivery.delivered}</p>
-            <p className="text-sm text-gray-600">Entregados</p>
+          <Card className="p-2 text-center">
+            <CheckCircle className="w-4 h-4 text-green-600 mx-auto mb-1" />
+            <p className="text-lg font-bold text-green-600">{metrics.delivery.delivered}</p>
+            <p className="text-xs text-gray-600">Entregados</p>
           </Card>
         </div>
       )}

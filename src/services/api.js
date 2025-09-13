@@ -38,7 +38,7 @@ export const ordersAPI = {
   getAll: (params) => api.get(API_ENDPOINTS.ORDERS.BASE, { params }),
   getById: (id) => api.get(API_ENDPOINTS.ORDERS.BY_ID(id)),
   create: (data) => api.post(API_ENDPOINTS.ORDERS.BASE, data),
-  update: (id, data) => api.put(API_ENDPOINTS.ORDERS.BY_ID(id), data),
+  update: (id, data) => api.patch(API_ENDPOINTS.ORDERS.BY_ID(id), data),
   updateStatus: (id, status) => api.patch(API_ENDPOINTS.ORDERS.UPDATE_STATUS(id), { status }),
   markDelivered: (id) => api.patch(API_ENDPOINTS.ORDERS.MARK_DELIVERED(id)),
   markNullified: (id) => api.patch(API_ENDPOINTS.ORDERS.MARK_NULLIFIED(id)),
@@ -53,6 +53,16 @@ export const dashboardAPI = {
   getStats: (params) => api.get(API_ENDPOINTS.DASHBOARD.STATS, { params }),
   getTopProducts: (params) => api.get(API_ENDPOINTS.DASHBOARD.TOP_PRODUCTS, { params }),
   getTopCustomers: (params) => api.get(API_ENDPOINTS.DASHBOARD.TOP_CUSTOMERS, { params }),
+};
+
+// Notifications API
+export const notificationsAPI = {
+  testEmail: (email) => api.post(API_ENDPOINTS.NOTIFICATIONS.TEST, { email }),
+  getConfig: () => api.get(API_ENDPOINTS.NOTIFICATIONS.CONFIG),
+  updateConfig: (config) => api.put(API_ENDPOINTS.NOTIFICATIONS.UPDATE_CONFIG, config),
+  addExtraEmail: (email, name) => api.post(API_ENDPOINTS.NOTIFICATIONS.ADD_EXTRA_EMAIL, { email, name }),
+  deleteExtraEmail: (email) => api.delete(API_ENDPOINTS.NOTIFICATIONS.DELETE_EXTRA_EMAIL(email)),
+  syncUsers: () => api.post(API_ENDPOINTS.NOTIFICATIONS.SYNC_USERS),
 };
 
 // Health check
