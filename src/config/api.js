@@ -18,6 +18,15 @@ export const API_ENDPOINTS = {
     LOGOUT: '/auth/logout',
   },
 
+  // Users Management (Admin only)
+  USERS: {
+    BASE: '/users',
+    BY_ID: (id) => `/users/${id}`,
+    RESET_PASSWORD: (id) => `/users/${id}/reset-password`,
+    GENERATE_PASSWORD: '/users/generate-password',
+    STATS: '/users/stats',
+  },
+
   // Customers
   CUSTOMERS: {
     BASE: '/customers',

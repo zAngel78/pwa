@@ -11,6 +11,18 @@ export const authAPI = {
   logout: () => api.post(API_ENDPOINTS.AUTH.LOGOUT),
 };
 
+// Users API (Admin only)
+export const usersAPI = {
+  getAll: (params) => api.get(API_ENDPOINTS.USERS.BASE, { params }),
+  getById: (id) => api.get(API_ENDPOINTS.USERS.BY_ID(id)),
+  create: (userData) => api.post(API_ENDPOINTS.USERS.BASE, userData),
+  update: (id, userData) => api.put(API_ENDPOINTS.USERS.BY_ID(id), userData),
+  delete: (id) => api.delete(API_ENDPOINTS.USERS.BY_ID(id)),
+  resetPassword: (id, newPassword) => api.put(API_ENDPOINTS.USERS.RESET_PASSWORD(id), { newPassword }),
+  generatePassword: () => api.post(API_ENDPOINTS.USERS.GENERATE_PASSWORD),
+  getStats: () => api.get(API_ENDPOINTS.USERS.STATS),
+};
+
 // Customers API
 export const customersAPI = {
   getAll: (params) => api.get(API_ENDPOINTS.CUSTOMERS.BASE, { params }),

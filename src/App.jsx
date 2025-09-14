@@ -10,6 +10,7 @@ import NewOrder from './pages/NewOrder';
 import Orders from './pages/Orders';
 import Products from './pages/Products';
 import Customers from './pages/Customers';
+import Users from './pages/Users';
 import useAuthStore from './stores/authStore';
 
 // Crear cliente de React Query
@@ -53,6 +54,7 @@ function App() {
                       <Route path="/orders/new" element={<NewOrder />} />
                       <Route path="/products" element={<Products />} />
                       <Route path="/customers" element={<Customers />} />
+                      <Route path="/users" element={<Users />} />
                       <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                   </main>
@@ -69,17 +71,23 @@ function App() {
               style: {
                 background: '#363636',
                 color: '#fff',
+                zIndex: 99999,
               },
               success: {
                 style: {
                   background: '#059669',
+                  zIndex: 99999,
                 },
               },
               error: {
                 style: {
                   background: '#dc2626',
+                  zIndex: 99999,
                 },
               },
+            }}
+            containerStyle={{
+              zIndex: 99999,
             }}
           />
         </div>
