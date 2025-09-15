@@ -21,6 +21,8 @@ const Products = () => {
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [editingStock, setEditingStock] = useState(null);
+  const [stockFormData, setStockFormData] = useState({ current: 0, min_stock: 0 });
 
   useEffect(() => {
     loadProducts();
@@ -37,6 +39,32 @@ const Products = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStockEdit = (product) => {
+    setEditingStock(product._id);
+    setStockFormData({
+      current: product.stock?.current || 0,
+      min_stock: product.stock?.min_stock || 0
+    });
+  };
+
+  const handleStockUpdate = async (productId) => {
+    try {
+      const response = await productsAPI.updateStock(productId, stockFormData);
+      setProducts(prev => prev.map(p =>
+        p._id === productId ? { ...p, ...response.data } : p
+      ));
+      setEditingStock(null);
+      toast.success('Stock actualizado correctamente');
+    } catch (error) {
+      toast.error(error.message || 'Error al actualizar stock');
+    }
+  };
+
+  const handleStockCancel = () => {
+    setEditingStock(null);
+    setStockFormData({ current: 0, min_stock: 0 });
   };
 
   // Filtrar productos
@@ -146,14 +174,59 @@ const Products = () => {
                     </span>
                   </Table.Cell>
                   <Table.Cell>
-                    <div className="flex items-center space-x-2">
-                      <span>{product.stock?.current || 0}</span>
-                      {product.isLowStock && (
-                        <Badge variant="danger" size="sm">
-                          Stock bajo
-                        </Badge>
-                      )}
-                    </div>
+                    {editingStock === product._id ? (
+                      <div className="flex items-center space-x-1">
+                        <Input
+                          type="number"
+                          min="0"
+                          value={stockFormData.current}
+                          onChange={(e) => setStockFormData(prev => ({ ...prev, current: Number(e.target.value) }))}
+                          className="w-16 h-8 text-sm"
+                          placeholder="Stock"
+                        />
+                        <Input
+                          type="number"
+                          min="0"
+                          value={stockFormData.min_stock}
+                          onChange={(e) => setStockFormData(prev => ({ ...prev, min_stock: Number(e.target.value) }))}
+                          className="w-16 h-8 text-sm"
+                          placeholder="Min"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => handleStockUpdate(product._id)}
+                          className="h-8 px-2"
+                        >
+                          ✓
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={handleStockCancel}
+                          className="h-8 px-2"
+                        >
+                          ✗
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className="cursor-pointer hover:bg-gray-100 px-1 rounded"
+                          onClick={() => canManage && handleStockEdit(product)}
+                          title="Click para editar stock"
+                        >
+                          {product.stock?.current || 0}
+                        </span>
+                        <span className="text-gray-400 text-sm">
+                          (mín: {product.stock?.min_stock || 0})
+                        </span>
+                        {product.isLowStock && (
+                          <Badge variant="danger" size="sm">
+                            Stock bajo
+                          </Badge>
+                        )}
+                      </div>
+                    )}
                   </Table.Cell>
                   {canManage && (
                     <Table.Cell>

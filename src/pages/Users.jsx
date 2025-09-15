@@ -74,15 +74,29 @@ const Users = () => {
   const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
+      console.log('📤 Enviando datos de usuario:', newUserData);
+
+      // Validar datos antes de enviar
+      if (!newUserData.name || !newUserData.email || !newUserData.password || !newUserData.role) {
+        toast.error('Todos los campos son requeridos');
+        return;
+      }
+
       const response = await usersAPI.create(newUserData);
+      console.log('✅ Usuario creado exitosamente:', response);
+
       toast.success('Usuario creado exitosamente');
       setNewCredentials(response?.data?.credentials || null);
       setNewUserData({ name: '', email: '', password: '', role: 'vendedor' });
       setShowCreateModal(false);
       loadData();
     } catch (error) {
-      console.error('Error creating user:', error);
-      toast.error(error.response?.data?.message || 'Error al crear usuario');
+      console.error('❌ Error creating user:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+
+      const errorMessage = error.response?.data?.message || 'Error al crear usuario';
+      toast.error(errorMessage);
     }
   };
 
