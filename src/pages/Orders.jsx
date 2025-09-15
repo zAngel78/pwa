@@ -10,7 +10,7 @@ import Table from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
 import { formatCLP, formatDateTime, formatDate, getDeliveryStatus } from '../lib/utils';
-import { ordersAPI } from '../services/api';
+import { ordersAPI, customersAPI, productsAPI } from '../services/api';
 import useAuthStore from '../stores/authStore';
 
 const Orders = () => {
@@ -536,28 +536,97 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     status: '',
     location: '',
-    notes: ''
+    notes: '',
+    delivery_due: '',
+    customer: ''
   });
   const [saving, setSaving] = useState(false);
+  const [customers, setCustomers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [items, setItems] = useState([]);
 
   const canEditLocation = user?.role === 'facturador' || user?.role === 'admin';
 
   useEffect(() => {
     if (order) {
+      const deliveryDate = order.delivery_due ? new Date(order.delivery_due).toISOString().slice(0, 16) : '';
       setFormData({
         status: order.status || '',
         location: order.location || '',
-        notes: order.notes || ''
+        notes: order.notes || '',
+        delivery_due: deliveryDate,
+        customer: order.customer?._id || ''
       });
+      setItems(order.items || []);
     }
   }, [order]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [customersResponse, productsResponse] = await Promise.all([
+          customersAPI.getAll(),
+          productsAPI.getAll()
+        ]);
+        setCustomers(customersResponse.data || []);
+        setProducts(productsResponse.data || []);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      }
+    };
+
+    if (isOpen) {
+      loadData();
+    }
+  }, [isOpen]);
+
+  // Funciones para manejar items
+  const addItem = () => {
+    const newItem = {
+      product: '',
+      quantity: 1,
+      unit_price: 0,
+      unit_of_measure: 'unidad',
+      brand: '',
+      format: '',
+      status: formData.status || 'pendiente',
+      notes: ''
+    };
+    setItems([...items, newItem]);
+  };
+
+  const removeItem = (index) => {
+    setItems(items.filter((_, i) => i !== index));
+  };
+
+  const updateItem = (index, field, value) => {
+    const updatedItems = [...items];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+
+    // Si cambia el producto, actualizar precio automáticamente
+    if (field === 'product') {
+      const selectedProduct = products.find(p => p._id === value);
+      if (selectedProduct) {
+        updatedItems[index].unit_price = selectedProduct.unit_price;
+        updatedItems[index].unit_of_measure = selectedProduct.unit_of_measure;
+        updatedItems[index].brand = selectedProduct.brand || '';
+        updatedItems[index].format = selectedProduct.format || '';
+      }
+    }
+
+    setItems(updatedItems);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
       setSaving(true);
-      const response = await ordersAPI.update(order._id, formData);
+      const submitData = {
+        ...formData,
+        items: items
+      };
+      const response = await ordersAPI.update(order._id, submitData);
       onSuccess(response.data);
     } catch (error) {
       console.error('Error updating order:', error);
@@ -572,24 +641,138 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
   return (
     <Modal title={`Editar Pedido ${order.order_number}`} isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Información del cliente (solo lectura) */}
+        {/* Información del pedido */}
         <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="font-medium text-gray-900 mb-2">Información del Cliente</h4>
-          <p><span className="font-medium">Cliente:</span> {order.customer?.name}</p>
-          <p><span className="font-medium">Fecha de entrega:</span> {formatDateTime(order.delivery_due)}</p>
+          <h4 className="font-medium text-gray-900 mb-2">Información del Pedido</h4>
+          <p><span className="font-medium">Número:</span> {order.order_number}</p>
+          <p><span className="font-medium">Creado por:</span> {order.createdBy?.name}</p>
           <p><span className="font-medium">Total:</span> {formatCLP(order.total)}</p>
         </div>
 
-        {/* Items del pedido (solo lectura) */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="font-medium text-gray-900 mb-2">Productos</h4>
-          {order.items?.map((item, index) => (
-            <div key={index} className="flex justify-between items-center text-sm py-1">
-              <span>{item.product?.name || 'Producto eliminado'}</span>
-              <span>{item.quantity} {item.unit_of_measure} × {formatCLP(item.unit_price)}</span>
+        {/* Items del pedido (editable para admin/facturador) */}
+        {canEditLocation ? (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h4 className="font-medium text-gray-900">Productos del Pedido</h4>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={addItem}
+              >
+                + Agregar Producto
+              </Button>
             </div>
-          ))}
-        </div>
+
+            {items.map((item, index) => (
+              <div key={index} className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <h5 className="font-medium text-gray-800">Producto {index + 1}</h5>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    onClick={() => removeItem(index)}
+                  >
+                    ✗
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Select
+                    label="Producto"
+                    value={item.product?._id || item.product || ''}
+                    onChange={(e) => updateItem(index, 'product', e.target.value)}
+                    required
+                  >
+                    <option value="">Seleccionar producto</option>
+                    {products.map(product => (
+                      <option key={product._id} value={product._id}>
+                        {product.name} - {product.sku}
+                      </option>
+                    ))}
+                  </Select>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      label="Cantidad"
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      value={item.quantity}
+                      onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
+                      required
+                    />
+                    <Select
+                      label="Unidad"
+                      value={item.unit_of_measure}
+                      onChange={(e) => updateItem(index, 'unit_of_measure', e.target.value)}
+                    >
+                      <option value="unidad">Unidad</option>
+                      <option value="par">Par</option>
+                      <option value="metro">Metro</option>
+                      <option value="caja">Caja</option>
+                      <option value="kg">Kg</option>
+                      <option value="litro">Litro</option>
+                      <option value="pack">Pack</option>
+                    </Select>
+                  </div>
+
+                  <Input
+                    label="Precio Unitario"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.unit_price}
+                    onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
+                    required
+                  />
+
+                  <Input
+                    label="Marca (opcional)"
+                    value={item.brand || ''}
+                    onChange={(e) => updateItem(index, 'brand', e.target.value)}
+                  />
+
+                  <Input
+                    label="Formato (opcional)"
+                    value={item.format || ''}
+                    onChange={(e) => updateItem(index, 'format', e.target.value)}
+                  />
+
+                  <div className="md:col-span-2">
+                    <Input
+                      label="Notas del producto (opcional)"
+                      value={item.notes || ''}
+                      onChange={(e) => updateItem(index, 'notes', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-emerald-50 p-2 rounded text-sm">
+                  <strong>Subtotal: {formatCLP((item.quantity || 0) * (item.unit_price || 0))}</strong>
+                </div>
+              </div>
+            ))}
+
+            {items.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No hay productos. Haz clic en "Agregar Producto" para añadir items al pedido.
+              </div>
+            )}
+          </div>
+        ) : (
+          // Vista de solo lectura para vendedor
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-2">Productos</h4>
+            {order.items?.map((item, index) => (
+              <div key={index} className="flex justify-between items-center text-sm py-1">
+                <span>{item.product?.name || 'Producto eliminado'}</span>
+                <span>{item.quantity} {item.unit_of_measure} × {formatCLP(item.unit_price)}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Estado */}
         <Select
@@ -603,6 +786,34 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
           <option value="facturado">Facturado</option>
           <option value="nulo">Nulo</option>
         </Select>
+
+        {/* Cliente - solo para admin/facturador */}
+        {canEditLocation && (
+          <Select
+            label="Cliente"
+            value={formData.customer}
+            onChange={(e) => setFormData(prev => ({ ...prev, customer: e.target.value }))}
+            required
+          >
+            <option value="">Seleccionar cliente</option>
+            {customers.map(customer => (
+              <option key={customer._id} value={customer._id}>
+                {customer.name} - {customer.tax_id}
+              </option>
+            ))}
+          </Select>
+        )}
+
+        {/* Fecha de entrega - solo para admin/facturador */}
+        {canEditLocation && (
+          <Input
+            label="Fecha de entrega"
+            type="datetime-local"
+            value={formData.delivery_due}
+            onChange={(e) => setFormData(prev => ({ ...prev, delivery_due: e.target.value }))}
+            required
+          />
+        )}
 
         {/* Campo Lugar - solo para facturador */}
         {canEditLocation && (

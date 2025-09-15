@@ -60,29 +60,28 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-gray-200/50 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
-          {/* Logo y título modernizado */}
-          <div className="flex items-center space-x-4">
-            <Link to="/" className="flex items-center space-x-4 group">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo y título compacto */}
+          <div className="flex items-center space-x-2">
+            <Link to="/" className="flex items-center space-x-2 group">
               <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                  <Package className="w-7 h-7 text-white" />
+                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow duration-300">
+                  <Package className="w-4 h-4 text-white" />
                 </div>
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full animate-pulse"></div>
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                  Pedidos & Facturación
+                <h1 className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                  Pedidos
                 </h1>
-                <p className="text-sm text-emerald-600 font-medium">
-                  Sistema Profesional ✨
+                <p className="text-xs text-emerald-600 font-medium">
+                  Sistema
                 </p>
               </div>
             </Link>
           </div>
 
-          {/* Navegación desktop moderna */}
-          <nav className="hidden lg:flex items-center bg-gray-50/50 rounded-2xl p-2">
+          {/* Navegación desktop compacta */}
+          <nav className="hidden lg:flex items-center bg-gray-50/50 rounded-xl p-1">
             {navigation.map((item) => {
               const isActive = location.pathname === item.href;
               const Icon = item.icon;
@@ -92,15 +91,15 @@ const Header = () => {
                   key={item.name}
                   to={item.href}
                   className={`
-                    relative flex items-center space-x-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 group
+                    relative flex items-center space-x-1 px-2 py-2 rounded-lg text-xs font-medium transition-all duration-300 group
                     ${isActive
                       ? 'bg-white text-emerald-700 shadow-md'
                       : 'text-gray-600 hover:text-emerald-600 hover:bg-white/60'
                     }
                   `}
                 >
-                  <Icon className={`w-4 h-4 transition-colors ${isActive ? 'text-emerald-600' : 'group-hover:text-emerald-500'}`} />
-                  <span>{item.name}</span>
+                  <Icon className={`w-3 h-3 transition-colors ${isActive ? 'text-emerald-600' : 'group-hover:text-emerald-500'}`} />
+                  <span className="hidden xl:inline">{item.name}</span>
                   {isActive && (
                     <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-emerald-500 rounded-full"></div>
                   )}
@@ -109,62 +108,65 @@ const Header = () => {
             })}
           </nav>
 
-          {/* Usuario y acciones modernizados */}
-          <div className="flex items-center space-x-4">
-            {/* Información del usuario */}
-            <div className="hidden md:flex items-center space-x-3">
+          {/* Usuario y acciones compactos */}
+          <div className="flex items-center space-x-2">
+            {/* Información del usuario compacta */}
+            <div className="hidden md:flex items-center space-x-2">
               <div className="text-right">
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-xs font-semibold text-gray-900">
                   {user?.name}
                 </p>
                 <div className="flex items-center justify-end space-x-1">
                   <span className="text-xs">{getRoleIcon(user?.role)}</span>
                   <Badge
                     variant="default"
-                    className={`${getRoleColor(user?.role)} text-xs px-2 py-1 font-medium shadow-md`}
+                    className={`${getRoleColor(user?.role)} text-xs px-1 py-0.5 font-medium shadow-sm`}
                   >
                     {user?.role}
                   </Badge>
                 </div>
               </div>
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+              <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md">
                 {user?.name?.charAt(0).toUpperCase()}
               </div>
             </div>
 
-            {/* Botones de acción modernos */}
-            <div className="flex items-center space-x-2">
+            {/* Botones de acción compactos */}
+            <div className="flex items-center space-x-1">
               <NotificationManager user={user} />
 
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handlePrint}
-                className="hidden sm:flex p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                className="hidden md:flex p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Imprimir"
               >
-                <Printer className="w-5 h-5 text-gray-600" />
+                <Printer className="w-4 h-4 text-gray-600" />
               </Button>
 
+              {/* Botón logout siempre visible */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleLogout}
-                className="hidden sm:flex p-2 hover:bg-red-50 text-red-600 rounded-xl transition-colors"
+                className="flex p-1.5 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                title="Cerrar Sesión"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-4 h-4" />
               </Button>
 
-              {/* Menú móvil modernizado */}
+              {/* Menú móvil */}
               <Button
                 variant="ghost"
                 size="sm"
-                className="lg:hidden p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                className="lg:hidden p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? (
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-4 h-4 text-gray-600" />
                 ) : (
-                  <Menu className="w-5 h-5 text-gray-600" />
+                  <Menu className="w-4 h-4 text-gray-600" />
                 )}
               </Button>
             </div>
