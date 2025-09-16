@@ -23,8 +23,6 @@ const NewOrder = () => {
   
   // Formulario principal
   const [selectedCustomer, setSelectedCustomer] = useState('');
-  const [deliveryDue, setDeliveryDue] = useState('');
-  const [orderNumber, setOrderNumber] = useState('');
   const [notes, setNotes] = useState('');
 
   // Lista de productos del pedido
@@ -34,9 +32,6 @@ const NewOrder = () => {
   const [productSearch, setProductSearch] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [unitOfMeasure, setUnitOfMeasure] = useState('unidad');
-  const [brand, setBrand] = useState('');
-  const [format, setFormat] = useState('');
   const [productNotes, setProductNotes] = useState('');
   
   // Estados auxiliares
@@ -48,10 +43,6 @@ const NewOrder = () => {
   // Cargar datos iniciales
   useEffect(() => {
     loadData();
-    // Fecha por defecto: 3 días desde hoy
-    const defaultDate = new Date();
-    defaultDate.setDate(defaultDate.getDate() + 3);
-    setDeliveryDue(defaultDate.toISOString().split('T')[0]);
   }, []);
 
   const loadData = async () => {
@@ -88,9 +79,6 @@ const NewOrder = () => {
       product: selectedProduct,
       productName: product.name,
       quantity: Number(quantity),
-      unit_of_measure: unitOfMeasure,
-      brand: brand || product.brand || '',
-      format: format || product.format || '',
       notes: productNotes
     };
 
@@ -100,9 +88,6 @@ const NewOrder = () => {
     setSelectedProduct('');
     // setProductSearch(''); // No limpiar para que el usuario pueda seguir buscando
     setQuantity(1);
-    setUnitOfMeasure('unidad');
-    setBrand('');
-    setFormat('');
     setProductNotes('');
 
     toast.success(`Producto agregado al pedido (${items.length + 1}/${20})`);
@@ -127,24 +112,9 @@ const NewOrder = () => {
   // Obtener producto seleccionado
   const currentProduct = products.find(p => p._id === selectedProduct);
 
-  // Auto-completar datos cuando se selecciona producto
-  useEffect(() => {
-    if (currentProduct) {
-      setBrand(currentProduct.brand || '');
-      setFormat(currentProduct.format || '');
-      setUnitOfMeasure(currentProduct.unit_of_measure || 'unidad');
-    }
-  }, [currentProduct]);
-
-  // Verificar si hay referencias faltantes en el useEffect anterior
-  // Este useEffect ya no necesita unitPrice como dependencia
-
   const handleProductSelect = (product) => {
     setSelectedProduct(product._id);
     setProductSearch(product.name);
-    setUnitOfMeasure(product.unit_of_measure || 'unidad');
-    setBrand(product.brand || '');
-    setFormat(product.format || '');
   };
 
   const handleSubmit = async (e) => {
@@ -158,11 +128,6 @@ const NewOrder = () => {
 
     if (items.length === 0) {
       toast.error('Agrega al menos un producto al pedido');
-      return;
-    }
-
-    if (!deliveryDue) {
-      toast.error('Selecciona una fecha de entrega');
       return;
     }
 
@@ -183,13 +148,8 @@ const NewOrder = () => {
         items: items.map(item => ({
           product: item.product,
           quantity: item.quantity,
-          unit_of_measure: item.unit_of_measure,
-          brand: item.brand.trim(),
-          format: item.format.trim(),
           notes: item.notes.trim()
         })),
-        delivery_due: new Date(deliveryDue).toISOString(),
-        order_number: orderNumber.trim(),
         notes: notes.trim()
       };
 
@@ -232,11 +192,7 @@ const NewOrder = () => {
     setProductSearch('');
     setSelectedProduct('');
     setQuantity(1);
-    setUnitOfMeasure('unidad');
-    setBrand('');
-    setFormat('');
     setProductNotes('');
-    setOrderNumber('');
     setNotes('');
   };
 
@@ -407,45 +363,15 @@ const NewOrder = () => {
 
         {/* Agregar producto al pedido */}
         <Card title={`Agregar Producto al Pedido (${items.length}/20)`} padding={true}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <Input
-              label="Cantidad"
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
-              required
-            />
-            <Select
-              label="Unidad de Medida"
-              value={unitOfMeasure}
-              onChange={(e) => setUnitOfMeasure(e.target.value)}
-              required
-            >
-              <option value="unidad">Unidad</option>
-              <option value="par">Par</option>
-              <option value="metro">Metro</option>
-              <option value="caja">Caja</option>
-              <option value="kg">Kilogramo</option>
-              <option value="litro">Litro</option>
-              <option value="pack">Pack</option>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <Input
-              label="Marca"
-              value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-              placeholder="Marca del producto"
-            />
-            <Input
-              label="Formato"
-              value={format}
-              onChange={(e) => setFormat(e.target.value)}
-              placeholder="Formato del producto"
-            />
-          </div>
+          <Input
+            label="Cantidad"
+            type="number"
+            min="1"
+            value={quantity}
+            onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+            required
+            className="max-w-xs"
+          />
 
           <Input
             label="Observaciones del producto (opcional)"
@@ -478,9 +404,7 @@ const NewOrder = () => {
                   <div className="flex-1">
                     <div className="font-medium text-sm">{item.productName}</div>
                     <div className="text-xs text-gray-500 mt-1">
-                      {item.quantity} {item.unit_of_measure}
-                      {item.brand && ` • ${item.brand}`}
-                      {item.format && ` • ${item.format}`}
+                      Cantidad: {item.quantity}
                     </div>
                     {item.notes && (
                       <div className="text-xs text-gray-600 mt-1 italic">
@@ -515,22 +439,6 @@ const NewOrder = () => {
 
         {/* Información del pedido */}
         <Card title="Datos del Pedido" padding={true}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <Input
-              label="Fecha de entrega"
-              type="date"
-              value={deliveryDue}
-              onChange={(e) => setDeliveryDue(e.target.value)}
-              required
-            />
-            <Input
-              label="Nro de Orden (opcional)"
-              value={orderNumber}
-              onChange={(e) => setOrderNumber(e.target.value)}
-              placeholder="Número de orden interno"
-            />
-          </div>
-
           <Input
             label="Observaciones del pedido (opcional)"
             as="textarea"
@@ -588,9 +496,7 @@ const NewOrder = () => {
         onClose={() => setShowConfirmation(false)}
         orderData={{
           customer: customers.find(c => c._id === selectedCustomer),
-          delivery_due: deliveryDue,
           items: items,
-          orderNumber: orderNumber,
           notes: notes
         }}
         onConfirm={handleConfirmedSubmit}
@@ -834,15 +740,9 @@ const ConfirmationModal = ({ isOpen, onClose, orderData, onConfirm }) => {
         <div className="bg-gray-50 rounded-lg p-4 space-y-3">
           <h5 className="font-medium text-gray-900">Resumen del Pedido:</h5>
 
-          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-            <div>
-              <span className="font-medium text-gray-600">Cliente:</span>
-              <p className="text-gray-900">{orderData.customer?.name || 'No seleccionado'}</p>
-            </div>
-            <div>
-              <span className="font-medium text-gray-600">Fecha de Entrega:</span>
-              <p className="text-gray-900">{orderData.delivery_due || 'No establecida'}</p>
-            </div>
+          <div className="mb-4">
+            <span className="font-medium text-gray-600">Cliente:</span>
+            <p className="text-gray-900">{orderData.customer?.name || 'No seleccionado'}</p>
           </div>
 
           {/* Lista de productos */}
