@@ -611,21 +611,17 @@ const NewCustomerModal = ({ isOpen, onClose, onSuccess }) => {
   );
 };
 
-// Modal para nuevo producto  
+// Modal para nuevo producto
 const NewProductModal = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    sku: '',
-    brand: '',
-    format: '',
-    unit_price: ''
+    name: ''
   });
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validaciones de producto
+    // Validaciones de producto simplificadas
     if (!formData.name.trim()) {
       toast.error('El nombre del producto es requerido');
       return;
@@ -636,27 +632,12 @@ const NewProductModal = ({ isOpen, onClose, onSuccess }) => {
       return;
     }
 
-    if (!formData.unit_price || Number(formData.unit_price) <= 0) {
-      toast.error('El precio debe ser mayor a 0');
-      return;
-    }
-
-    if (Number(formData.unit_price) > 9999999) {
-      toast.error('El precio no puede exceder $9.999.999');
-      return;
-    }
-
-    if (formData.sku && formData.sku.trim().length > 0 && formData.sku.trim().length < 3) {
-      toast.error('El SKU debe tener al menos 3 caracteres');
-      return;
-    }
-
     try {
       setSaving(true);
       const productData = {
         ...formData,
-        unit_price: Number(formData.unit_price),
-        sku: formData.sku || `SKU-${Date.now()}`
+        unit_price: 0, // Sin precios en modo logístico
+        sku: `SKU-${Date.now()}` // Auto-generado
       };
       
       const response = await productsAPI.create(productData);
@@ -673,38 +654,16 @@ const NewProductModal = ({ isOpen, onClose, onSuccess }) => {
     <Modal title="Nuevo Producto" isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Nombre"
+          label="Nombre del producto"
           value={formData.name}
           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          placeholder="Ej: Producto ABC"
           required
         />
-        <Input
-          label="SKU (opcional)"
-          value={formData.sku}
-          onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
-          placeholder="Se generará automáticamente si está vacío"
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Marca (opcional)"
-            value={formData.brand}
-            onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
-          />
-          <Input
-            label="Formato (opcional)"
-            value={formData.format}
-            onChange={(e) => setFormData(prev => ({ ...prev, format: e.target.value }))}
-          />
+
+        <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
+          ℹ️ El SKU se generará automáticamente
         </div>
-        <Input
-          label="Precio"
-          type="number"
-          min="0"
-          step="0.01"
-          value={formData.unit_price}
-          onChange={(e) => setFormData(prev => ({ ...prev, unit_price: e.target.value }))}
-          required
-        />
         
         <div className="flex gap-3 justify-end pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>
