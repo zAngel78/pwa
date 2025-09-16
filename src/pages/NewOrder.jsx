@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, AlertTriangle, Trash2 } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Trash2, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import Card from '../components/ui/Card';
@@ -96,16 +96,16 @@ const NewOrder = () => {
 
     setItems([...items, newItem]);
 
-    // Limpiar formulario temporal
+    // Limpiar formulario temporal pero mantener la búsqueda visible
     setSelectedProduct('');
-    setProductSearch('');
+    // setProductSearch(''); // No limpiar para que el usuario pueda seguir buscando
     setQuantity(1);
     setUnitOfMeasure('unidad');
     setBrand('');
     setFormat('');
     setProductNotes('');
 
-    toast.success('Producto agregado al pedido');
+    toast.success(`Producto agregado al pedido (${items.length + 1}/${20})`);
   };
 
   const removeProductFromOrder = (index) => {
@@ -368,22 +368,29 @@ const NewOrder = () => {
 
             {/* Detalles del producto seleccionado */}
             {currentProduct && (
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="text-sm">
-                  <strong>{currentProduct.name}</strong>
-                  {currentProduct.brand && <span> • {currentProduct.brand}</span>}
-                  {currentProduct.format && <span> • {currentProduct.format}</span>}
-                </div>
-                <div className="text-xs text-gray-600 mt-1">
-                  SKU: {currentProduct.sku}
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium text-emerald-800">
+                      ✓ {currentProduct.name}
+                    </div>
+                    <div className="text-xs text-emerald-600 mt-1">
+                      SKU: {currentProduct.sku}
+                      {currentProduct.brand && ` • ${currentProduct.brand}`}
+                      {currentProduct.format && ` • ${currentProduct.format}`}
+                    </div>
+                  </div>
+                  <div className="text-xs text-emerald-600 font-medium">
+                    Listo para agregar
+                  </div>
                 </div>
               </div>
             )}
           </div>
         </Card>
 
-        {/* Detalles del pedido */}
-        <Card title="Detalles del Pedido" padding={true}>
+        {/* Agregar producto al pedido */}
+        <Card title={`Agregar Producto al Pedido (${items.length}/20)`} padding={true}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <Input
               label="Cantidad"
@@ -433,7 +440,7 @@ const NewOrder = () => {
             placeholder="Notas específicas para este producto..."
           />
 
-          <div className="flex justify-end">
+          <div className="flex justify-end mt-6">
             <Button
               type="button"
               onClick={addProductToOrder}
@@ -444,13 +451,11 @@ const NewOrder = () => {
               Agregar Producto ({items.length}/20)
             </Button>
           </div>
-
-
         </Card>
 
         {/* Lista de productos agregados */}
-        {items.length > 0 && (
-          <Card title={`Productos en el pedido (${items.length}/20)`} padding={true}>
+        <Card title={`Productos en el pedido (${items.length}/20)`} padding={true}>
+          {items.length > 0 ? (
             <div className="space-y-3">
               {items.map((item, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -479,8 +484,18 @@ const NewOrder = () => {
                 </div>
               ))}
             </div>
-          </Card>
-        )}
+          ) : (
+            <div className="text-center py-8">
+              <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No hay productos en el pedido
+              </h3>
+              <p className="text-gray-500 text-sm">
+                Busca y selecciona productos arriba, luego haz clic en "Agregar Producto"
+              </p>
+            </div>
+          )}
+        </Card>
 
         {/* Información del pedido */}
         <Card title="Datos del Pedido" padding={true}>
