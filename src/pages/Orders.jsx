@@ -9,7 +9,7 @@ import Badge from '../components/ui/Badge';
 import Table from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
-import { formatCLP, formatDateTime, formatDate, getDeliveryStatus } from '../lib/utils';
+import { formatDateTime, formatDate, getDeliveryStatus } from '../lib/utils';
 import { ordersAPI, customersAPI, productsAPI } from '../services/api';
 import useAuthStore from '../stores/authStore';
 
@@ -19,6 +19,7 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [showHistorical, setShowHistorical] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
 
   useEffect(() => {
@@ -211,7 +212,7 @@ const Orders = () => {
                   <span class="status-badge status-${order.status}">${order.status}</span>
                 </div>
                 <div>
-                  <strong style="color: #059669; font-size: 16px;">${formatCLP(order.total)}</strong>
+                  <strong style="color: #059669; font-size: 16px;">Pedido ${order.order_number}</strong>
                 </div>
               </div>
 
@@ -256,8 +257,7 @@ const Orders = () => {
                     <tr>
                       <th>Producto</th>
                       <th>Cantidad</th>
-                      <th>Precio Unitario</th>
-                      <th>Subtotal</th>
+                      <th>Observación</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -265,18 +265,12 @@ const Orders = () => {
                       <tr>
                         <td>
                           <strong>${item.product?.name || 'Producto eliminado'}</strong>
-                          ${item.brand ? `<br><small>Marca: ${item.brand}</small>` : ''}
                           ${item.format ? `<br><small>Formato: ${item.format}</small>` : ''}
                         </td>
                         <td>${item.quantity} ${item.unit_of_measure}</td>
-                        <td>${formatCLP(item.unit_price)}</td>
-                        <td>${formatCLP(item.quantity * item.unit_price)}</td>
+                        <td>${item.notes || '—'}</td>
                       </tr>
-                    `).join('') || '<tr><td colspan="4">No hay productos</td></tr>'}
-                    <tr class="total-row">
-                      <td colspan="3"><strong>TOTAL</strong></td>
-                      <td><strong>${formatCLP(order.total)}</strong></td>
-                    </tr>
+                    `).join('') || '<tr><td colspan="3">No hay productos</td></tr>'}
                   </tbody>
                 </table>
 
@@ -311,7 +305,20 @@ const Orders = () => {
 
     const matchesStatus = !statusFilter || order.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    // Filtro de histórico (6 meses para facturados/anulados)
+    const now = new Date();
+    const sixMonthsAgo = new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000);
+    const orderDate = new Date(order.createdAt);
+    const isOld = orderDate < sixMonthsAgo;
+    const isHistorical = ['facturado', 'nulo'].includes(order.status) && isOld;
+
+    // Si estamos mostrando histórico, solo mostrar pedidos históricos
+    if (showHistorical) {
+      return matchesSearch && matchesStatus && isHistorical;
+    } else {
+      // Si no estamos mostrando histórico, excluir pedidos históricos
+      return matchesSearch && matchesStatus && !isHistorical;
+    }
   });
 
   const handleStatusChange = async (orderId, newStatus) => {
@@ -378,7 +385,7 @@ const Orders = () => {
 
       {/* Filtros */}
       <Card>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Input
             placeholder="Buscar por cliente o número de pedido..."
             value={search}
@@ -394,6 +401,19 @@ const Orders = () => {
             <option value="facturado">Facturado</option>
             <option value="nulo">Nulo</option>
           </Select>
+          <div className="flex items-center">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showHistorical}
+                onChange={(e) => setShowHistorical(e.target.checked)}
+                className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span className="text-sm text-gray-700">
+                📁 Mostrar Histórico (6+ meses)
+              </span>
+            </label>
+          </div>
         </div>
       </Card>
 
@@ -408,7 +428,6 @@ const Orders = () => {
                 <Table.Head>Items</Table.Head>
                 <Table.Head>Estado</Table.Head>
                 <Table.Head>Entrega</Table.Head>
-                <Table.Head>Total</Table.Head>
                 {canManage && <Table.Head>Acciones</Table.Head>}
               </Table.Row>
             </Table.Header>
@@ -457,11 +476,6 @@ const Orders = () => {
                             Entregado: {formatDateTime(order.delivered_at)}
                           </div>
                         )}
-                      </div>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <div className="font-semibold text-emerald-600">
-                        {formatCLP(order.total)}
                       </div>
                     </Table.Cell>
                     {canManage && (
@@ -582,10 +596,14 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
 
   // Funciones para manejar items
   const addItem = () => {
+    if (items.length >= 20) {
+      toast.error('No se pueden agregar más de 20 productos por pedido');
+      return;
+    }
+
     const newItem = {
       product: '',
       quantity: 1,
-      unit_price: 0,
       unit_of_measure: 'unidad',
       brand: '',
       format: '',
@@ -603,11 +621,10 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
     const updatedItems = [...items];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
 
-    // Si cambia el producto, actualizar precio automáticamente
+    // Si cambia el producto, actualizar información automáticamente
     if (field === 'product') {
       const selectedProduct = products.find(p => p._id === value);
       if (selectedProduct) {
-        updatedItems[index].unit_price = selectedProduct.unit_price;
         updatedItems[index].unit_of_measure = selectedProduct.unit_of_measure;
         updatedItems[index].brand = selectedProduct.brand || '';
         updatedItems[index].format = selectedProduct.format || '';
@@ -646,19 +663,24 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
           <h4 className="font-medium text-gray-900 mb-2">Información del Pedido</h4>
           <p><span className="font-medium">Número:</span> {order.order_number}</p>
           <p><span className="font-medium">Creado por:</span> {order.createdBy?.name}</p>
-          <p><span className="font-medium">Total:</span> {formatCLP(order.total)}</p>
         </div>
 
         {/* Items del pedido (editable para admin/facturador) */}
         {canEditLocation ? (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h4 className="font-medium text-gray-900">Productos del Pedido</h4>
+              <div>
+                <h4 className="font-medium text-gray-900">Productos del Pedido</h4>
+                <p className="text-sm text-gray-500">
+                  {items.length}/20 productos {items.length >= 20 && '(límite alcanzado)'}
+                </p>
+              </div>
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
                 onClick={addItem}
+                disabled={items.length >= 20}
               >
                 + Agregar Producto
               </Button>
@@ -718,15 +740,6 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
                     </Select>
                   </div>
 
-                  <Input
-                    label="Precio Unitario"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.unit_price}
-                    onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
-                    required
-                  />
 
                   <Input
                     label="Marca (opcional)"
@@ -742,16 +755,13 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
 
                   <div className="md:col-span-2">
                     <Input
-                      label="Notas del producto (opcional)"
+                      label="Observaciones del producto (opcional)"
                       value={item.notes || ''}
                       onChange={(e) => updateItem(index, 'notes', e.target.value)}
                     />
                   </div>
                 </div>
 
-                <div className="bg-emerald-50 p-2 rounded text-sm">
-                  <strong>Subtotal: {formatCLP((item.quantity || 0) * (item.unit_price || 0))}</strong>
-                </div>
               </div>
             ))}
 

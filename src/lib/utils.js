@@ -50,35 +50,33 @@ export const formatRelativeTime = (date) => {
   return `hace ${diffInYears} año${diffInYears > 1 ? 's' : ''}`;
 };
 
-// Validación de RUT chileno
+// Validación simple de RUT chileno
 export const validateRUT = (rut) => {
-  if (!rut) return false;
-  
-  // Limpiar RUT
-  const cleanRUT = rut.replace(/[^0-9kK]/g, '');
-  if (cleanRUT.length < 2) return false;
-  
-  const body = cleanRUT.slice(0, -1);
-  const dv = cleanRUT.slice(-1).toUpperCase();
-  
-  // Calcular dígito verificador
-  let sum = 0;
-  let multiplier = 2;
-  
-  for (let i = body.length - 1; i >= 0; i--) {
-    sum += parseInt(body[i]) * multiplier;
+  if (!rut) return { isValid: false, message: 'El RUT es requerido' };
+
+  const cleanRut = rut.replace(/[.-\s]/g, '').toUpperCase();
+
+  if (!/^\d{7,8}[0-9K]$/.test(cleanRut)) {
+    return { isValid: false, message: 'Formato de RUT inválido' };
+  }
+
+  const rutNumber = cleanRut.slice(0, -1);
+  const dv = cleanRut.slice(-1);
+  let sum = 0, multiplier = 2;
+
+  for (let i = rutNumber.length - 1; i >= 0; i--) {
+    sum += parseInt(rutNumber[i]) * multiplier;
     multiplier = multiplier === 7 ? 2 : multiplier + 1;
   }
-  
+
   const remainder = sum % 11;
-  const calculatedDV = 11 - remainder;
-  let expectedDV;
-  
-  if (calculatedDV === 11) expectedDV = '0';
-  else if (calculatedDV === 10) expectedDV = 'K';
-  else expectedDV = calculatedDV.toString();
-  
-  return dv === expectedDV;
+  const calculatedDv = remainder === 0 ? '0' : remainder === 1 ? 'K' : (11 - remainder).toString();
+
+  if (dv !== calculatedDv) {
+    return { isValid: false, message: 'RUT inválido - dígito verificador incorrecto' };
+  }
+
+  return { isValid: true };
 };
 
 // Formatear RUT

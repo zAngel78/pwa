@@ -10,6 +10,7 @@ import Modal from '../components/ui/Modal';
 import BulkImport from '../components/BulkImport';
 import { customersAPI } from '../services/api';
 import useAuthStore from '../stores/authStore';
+import { validateRUT } from '../lib/utils';
 
 const Customers = () => {
   const { user } = useAuthStore();
@@ -174,8 +175,6 @@ const Customers = () => {
               <Table.Row>
                 <Table.Head>Cliente</Table.Head>
                 <Table.Head>RUT</Table.Head>
-                <Table.Head>Contacto</Table.Head>
-                <Table.Head>Ubicación</Table.Head>
                 {canManage && <Table.Head>Acciones</Table.Head>}
               </Table.Row>
             </Table.Header>
@@ -197,31 +196,6 @@ const Customers = () => {
                       <code className="bg-gray-100 px-2 py-1 rounded text-sm">
                         {customer.tax_id}
                       </code>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <div>
-                      {customer.email && (
-                        <div className="text-sm">{customer.email}</div>
-                      )}
-                      {customer.phone && (
-                        <div className="text-sm text-gray-500">{customer.phone}</div>
-                      )}
-                      {!customer.email && !customer.phone && (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </div>
-                  </Table.Cell>
-                  <Table.Cell>
-                    {customer.address?.city ? (
-                      <div className="text-sm">
-                        <div>{customer.address.city}</div>
-                        {customer.address.region && (
-                          <div className="text-gray-500">{customer.address.region}</div>
-                        )}
-                      </div>
                     ) : (
                       <span className="text-gray-400">—</span>
                     )}
@@ -329,15 +303,24 @@ const NewCustomerModal = ({ isOpen, onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       toast.error('El nombre es requerido');
       return;
     }
 
+    // Validar RUT si se ingresó
+    if (formData.tax_id && formData.tax_id.trim()) {
+      const rutValidation = validateRUT(formData.tax_id.trim());
+      if (!rutValidation.isValid) {
+        toast.error(rutValidation.message);
+        return;
+      }
+    }
+
     try {
       setSaving(true);
-      
+
       // Agregar campo notes que espera el backend
       const customerData = {
         ...formData,
@@ -424,15 +407,24 @@ const EditCustomerModal = ({ isOpen, customer, onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       toast.error('El nombre es requerido');
       return;
     }
 
+    // Validar RUT si se ingresó
+    if (formData.tax_id && formData.tax_id.trim()) {
+      const rutValidation = validateRUT(formData.tax_id.trim());
+      if (!rutValidation.isValid) {
+        toast.error(rutValidation.message);
+        return;
+      }
+    }
+
     try {
       setSaving(true);
-      
+
       // Agregar campo notes que espera el backend
       const customerData = {
         ...formData,

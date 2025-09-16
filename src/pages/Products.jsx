@@ -21,8 +21,6 @@ const Products = () => {
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
-  const [editingStock, setEditingStock] = useState(null);
-  const [stockFormData, setStockFormData] = useState({ current: 0, min_stock: 0 });
 
   useEffect(() => {
     loadProducts();
@@ -41,31 +39,6 @@ const Products = () => {
     }
   };
 
-  const handleStockEdit = (product) => {
-    setEditingStock(product._id);
-    setStockFormData({
-      current: product.stock?.current || 0,
-      min_stock: product.stock?.min_stock || 0
-    });
-  };
-
-  const handleStockUpdate = async (productId) => {
-    try {
-      const response = await productsAPI.updateStock(productId, stockFormData);
-      setProducts(prev => prev.map(p =>
-        p._id === productId ? { ...p, ...response.data } : p
-      ));
-      setEditingStock(null);
-      toast.success('Stock actualizado correctamente');
-    } catch (error) {
-      toast.error(error.message || 'Error al actualizar stock');
-    }
-  };
-
-  const handleStockCancel = () => {
-    setEditingStock(null);
-    setStockFormData({ current: 0, min_stock: 0 });
-  };
 
   // Filtrar productos
   const filteredProducts = products.filter(product => {
@@ -143,9 +116,7 @@ const Products = () => {
               <Table.Row>
                 <Table.Head>Producto</Table.Head>
                 <Table.Head>SKU</Table.Head>
-                <Table.Head>Marca</Table.Head>
-                <Table.Head>Precio</Table.Head>
-                <Table.Head>Stock</Table.Head>
+                <Table.Head>Formato</Table.Head>
                 {canManage && <Table.Head>Acciones</Table.Head>}
               </Table.Row>
             </Table.Header>
@@ -153,80 +124,17 @@ const Products = () => {
               {filteredProducts.map((product) => (
                 <Table.Row key={product._id}>
                   <Table.Cell>
-                    <div>
-                      <div className="font-medium">{product.name}</div>
-                      {product.format && (
-                        <div className="text-sm text-gray-500">
-                          {product.format}
-                        </div>
-                      )}
-                    </div>
+                    <div className="font-medium">{product.name}</div>
                   </Table.Cell>
                   <Table.Cell>
                     <code className="bg-gray-100 px-2 py-1 rounded text-sm">
                       {product.sku}
                     </code>
                   </Table.Cell>
-                  <Table.Cell>{product.brand || '—'}</Table.Cell>
                   <Table.Cell>
-                    <span className="font-semibold">
-                      {formatCLP(product.unit_price)}
+                    <span className="text-gray-600">
+                      {product.format || '—'}
                     </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    {editingStock === product._id ? (
-                      <div className="flex items-center space-x-1">
-                        <Input
-                          type="number"
-                          min="0"
-                          value={stockFormData.current}
-                          onChange={(e) => setStockFormData(prev => ({ ...prev, current: Number(e.target.value) }))}
-                          className="w-16 h-8 text-sm"
-                          placeholder="Stock"
-                        />
-                        <Input
-                          type="number"
-                          min="0"
-                          value={stockFormData.min_stock}
-                          onChange={(e) => setStockFormData(prev => ({ ...prev, min_stock: Number(e.target.value) }))}
-                          className="w-16 h-8 text-sm"
-                          placeholder="Min"
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handleStockUpdate(product._id)}
-                          className="h-8 px-2"
-                        >
-                          ✓
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={handleStockCancel}
-                          className="h-8 px-2"
-                        >
-                          ✗
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <span
-                          className="cursor-pointer hover:bg-gray-100 px-1 rounded"
-                          onClick={() => canManage && handleStockEdit(product)}
-                          title="Click para editar stock"
-                        >
-                          {product.stock?.current || 0}
-                        </span>
-                        <span className="text-gray-400 text-sm">
-                          (mín: {product.stock?.min_stock || 0})
-                        </span>
-                        {product.isLowStock && (
-                          <Badge variant="danger" size="sm">
-                            Stock bajo
-                          </Badge>
-                        )}
-                      </div>
-                    )}
                   </Table.Cell>
                   {canManage && (
                     <Table.Cell>
