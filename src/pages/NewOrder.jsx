@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, AlertTriangle } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import Card from '../components/ui/Card';
@@ -8,7 +8,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
-import { formatCLP } from '../lib/utils';
+// import { formatCLP } from '../lib/utils'; // Eliminado - sin precios para logística
 import { customersAPI, productsAPI, ordersAPI } from '../services/api';
 import useAuthStore from '../stores/authStore';
 
@@ -21,24 +21,28 @@ const NewOrder = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Formulario
+  // Formulario principal
   const [selectedCustomer, setSelectedCustomer] = useState('');
-  const [productSearch, setProductSearch] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const [unitPrice, setUnitPrice] = useState('');
-  const [unitOfMeasure, setUnitOfMeasure] = useState('unidad');
-  const [brand, setBrand] = useState('');
-  const [format, setFormat] = useState('');
   const [deliveryDue, setDeliveryDue] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Lista de productos del pedido
+  const [items, setItems] = useState([]);
+
+  // Formulario temporal para agregar producto
+  const [productSearch, setProductSearch] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [unitOfMeasure, setUnitOfMeasure] = useState('unidad');
+  const [brand, setBrand] = useState('');
+  const [format, setFormat] = useState('');
+  const [productNotes, setProductNotes] = useState('');
   
   // Estados auxiliares
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [duplicateModal, setDuplicateModal] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   // Cargar datos iniciales
@@ -67,6 +71,48 @@ const NewOrder = () => {
     }
   };
 
+  // Funciones para manejar múltiples productos
+  const addProductToOrder = () => {
+    if (!selectedProduct) {
+      toast.error('Selecciona un producto');
+      return;
+    }
+
+    if (items.length >= 20) {
+      toast.error('No se pueden agregar más de 20 productos por pedido');
+      return;
+    }
+
+    const product = products.find(p => p._id === selectedProduct);
+    const newItem = {
+      product: selectedProduct,
+      productName: product.name,
+      quantity: Number(quantity),
+      unit_of_measure: unitOfMeasure,
+      brand: brand || product.brand || '',
+      format: format || product.format || '',
+      notes: productNotes
+    };
+
+    setItems([...items, newItem]);
+
+    // Limpiar formulario temporal
+    setSelectedProduct('');
+    setProductSearch('');
+    setQuantity(1);
+    setUnitOfMeasure('unidad');
+    setBrand('');
+    setFormat('');
+    setProductNotes('');
+
+    toast.success('Producto agregado al pedido');
+  };
+
+  const removeProductFromOrder = (index) => {
+    setItems(items.filter((_, i) => i !== index));
+    toast.success('Producto eliminado del pedido');
+  };
+
   // Filtrar productos por búsqueda
   const filteredProducts = useMemo(() => {
     if (!productSearch.trim()) return products.slice(0, 10);
@@ -81,17 +127,18 @@ const NewOrder = () => {
   // Obtener producto seleccionado
   const currentProduct = products.find(p => p._id === selectedProduct);
 
-  // Auto-completar precio cuando se selecciona producto
+  // Auto-completar datos cuando se selecciona producto
   useEffect(() => {
-    if (currentProduct && !unitPrice) {
-      setUnitPrice(currentProduct.unit_price.toString());
+    if (currentProduct) {
+      setBrand(currentProduct.brand || '');
+      setFormat(currentProduct.format || '');
+      setUnitOfMeasure(currentProduct.unit_of_measure || 'unidad');
     }
-  }, [currentProduct, unitPrice]);
+  }, [currentProduct]);
 
   const handleProductSelect = (product) => {
     setSelectedProduct(product._id);
     setProductSearch(product.name);
-    setUnitPrice(product.unit_price.toString());
     setUnitOfMeasure(product.unit_of_measure || 'unidad');
     setBrand(product.brand || '');
     setFormat(product.format || '');
@@ -100,24 +147,19 @@ const NewOrder = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validaciones básicas primero
+    // Validaciones básicas
     if (!selectedCustomer) {
       toast.error('Selecciona un cliente');
       return;
     }
-    
-    if (!selectedProduct) {
-      toast.error('Selecciona un producto');
+
+    if (items.length === 0) {
+      toast.error('Agrega al menos un producto al pedido');
       return;
     }
 
-    if (quantity <= 0) {
-      toast.error('La cantidad debe ser mayor a 0');
-      return;
-    }
-
-    if (!unitPrice || Number(unitPrice) <= 0) {
-      toast.error('El precio debe ser mayor a 0');
+    if (!deliveryDue) {
+      toast.error('Selecciona una fecha de entrega');
       return;
     }
 
@@ -135,36 +177,32 @@ const NewOrder = () => {
 
       const orderData = {
         customer: selectedCustomer,
-        items: [{
-          product: selectedProduct,
-          quantity: Number(quantity),
-          unit_price: Number(unitPrice),
-          unit_of_measure: unitOfMeasure,
-          brand: brand.trim(),
-          format: format.trim()
-        }],
+        items: items.map(item => ({
+          product: item.product,
+          quantity: item.quantity,
+          unit_of_measure: item.unit_of_measure,
+          brand: item.brand.trim(),
+          format: item.format.trim(),
+          notes: item.notes.trim()
+        })),
         delivery_due: new Date(deliveryDue).toISOString(),
         order_number: orderNumber.trim(),
         notes: notes.trim()
       };
 
-      await ordersAPI.create(orderData);
+      const response = await ordersAPI.create(orderData);
 
-      toast.success('¡Pedido creado exitosamente!');
+      // Verificar si fue una consolidación automática
+      if (response.data.merged && response.data.merged > 0) {
+        toast.success(`¡Productos agregados al pedido existente! (${response.data.merged} productos consolidados)`);
+      } else {
+        toast.success('¡Pedido creado exitosamente!');
+      }
+
       navigate('/');
 
     } catch (error) {
       console.error('Error creating order:', error);
-
-      // Manejar duplicados
-      if (error.response?.status === 409 && error.response.data?.duplicates) {
-        setDuplicateModal({
-          duplicates: error.response.data.duplicates,
-          orderData: orderData
-        });
-        return;
-      }
-
       toast.error(error.message || 'Error al crear el pedido');
     } finally {
       setSubmitting(false);
@@ -173,44 +211,18 @@ const NewOrder = () => {
 
   const resetForm = () => {
     setSelectedCustomer('');
+    setItems([]);
     setProductSearch('');
     setSelectedProduct('');
     setQuantity(1);
-    setUnitPrice('');
     setUnitOfMeasure('unidad');
     setBrand('');
     setFormat('');
+    setProductNotes('');
     setOrderNumber('');
     setNotes('');
   };
 
-  const handleDuplicateAction = async (action) => {
-    if (!duplicateModal) return;
-    
-    try {
-      setSubmitting(true);
-      const orderData = {
-        ...duplicateModal.orderData,
-        handleDuplicates: action
-      };
-      
-      if (action === 'merge') {
-        await ordersAPI.create(orderData);
-        toast.success('¡Cantidades sumadas al pedido existente!');
-      } else {
-        // Crear nueva línea ignorando duplicados
-        await ordersAPI.create({ ...orderData, handleDuplicates: 'ignore' });
-        toast.success('¡Nueva línea creada!');
-      }
-      
-      setDuplicateModal(null);
-      navigate('/');
-    } catch (error) {
-      toast.error('Error al procesar el pedido');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -323,7 +335,7 @@ const NewOrder = () => {
                         >
                           <div className="font-medium text-sm">{product.name}</div>
                           <div className="text-xs text-gray-500">
-                            SKU: {product.sku} • {formatCLP(product.unit_price)}
+                            SKU: {product.sku} {product.brand && `• ${product.brand}`}
                           </div>
                         </button>
                       ))
@@ -363,7 +375,7 @@ const NewOrder = () => {
                   {currentProduct.format && <span> • {currentProduct.format}</span>}
                 </div>
                 <div className="text-xs text-gray-600 mt-1">
-                  Precio sugerido: {formatCLP(currentProduct.unit_price)}
+                  SKU: {currentProduct.sku}
                 </div>
               </div>
             )}
@@ -412,17 +424,67 @@ const NewOrder = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Precio unitario"
-              type="number"
-              min="0"
-              step="0.01"
-              value={unitPrice}
-              onChange={(e) => setUnitPrice(e.target.value)}
-              placeholder="Precio por unidad"
-              required
-            />
+          <Input
+            label="Observaciones del producto (opcional)"
+            as="textarea"
+            rows={2}
+            value={productNotes}
+            onChange={(e) => setProductNotes(e.target.value)}
+            placeholder="Notas específicas para este producto..."
+          />
+
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={addProductToOrder}
+              disabled={!selectedProduct}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Agregar Producto ({items.length}/20)
+            </Button>
+          </div>
+
+
+        </Card>
+
+        {/* Lista de productos agregados */}
+        {items.length > 0 && (
+          <Card title={`Productos en el pedido (${items.length}/20)`} padding={true}>
+            <div className="space-y-3">
+              {items.map((item, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{item.productName}</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {item.quantity} {item.unit_of_measure}
+                      {item.brand && ` • ${item.brand}`}
+                      {item.format && ` • ${item.format}`}
+                    </div>
+                    {item.notes && (
+                      <div className="text-xs text-gray-600 mt-1 italic">
+                        "{item.notes}"
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeProductFromOrder(index)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {/* Información del pedido */}
+        <Card title="Datos del Pedido" padding={true}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <Input
               label="Fecha de entrega"
               type="date"
@@ -430,40 +492,22 @@ const NewOrder = () => {
               onChange={(e) => setDeliveryDue(e.target.value)}
               required
             />
-          </div>
-
-          {/* Total */}
-          {unitPrice && quantity && (
-            <div className="mt-4 p-3 bg-emerald-50 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Total del pedido:</span>
-                <span className="text-lg font-bold text-emerald-700">
-                  {formatCLP(Number(unitPrice) * Number(quantity))}
-                </span>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label="Nro de Orden (opcional)"
               value={orderNumber}
               onChange={(e) => setOrderNumber(e.target.value)}
               placeholder="Número de orden interno"
             />
-            <div></div> {/* Espacio vacío */}
           </div>
 
-          <div className="mt-4">
-            <Input
-              label="Observaciones (opcional)"
-              as="textarea"
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Notas adicionales del pedido..."
-            />
-          </div>
+          <Input
+            label="Observaciones del pedido (opcional)"
+            as="textarea"
+            rows={3}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Notas adicionales del pedido completo..."
+          />
         </Card>
 
         {/* Acciones */}
@@ -478,7 +522,7 @@ const NewOrder = () => {
           <Button
             type="submit"
             loading={submitting}
-            disabled={!selectedCustomer || !selectedProduct}
+            disabled={!selectedCustomer || items.length === 0}
           >
             Crear Pedido
           </Button>
@@ -506,14 +550,6 @@ const NewOrder = () => {
         }}
       />
 
-      {/* Modal de duplicados */}
-      <DuplicateModal
-        isOpen={!!duplicateModal}
-        duplicates={duplicateModal?.duplicates}
-        onClose={() => setDuplicateModal(null)}
-        onMerge={() => handleDuplicateAction('merge')}
-        onCreate={() => handleDuplicateAction('ignore')}
-      />
 
       {/* Modal de confirmación */}
       <ConfirmationModal
@@ -522,12 +558,7 @@ const NewOrder = () => {
         orderData={{
           customer: customers.find(c => c._id === selectedCustomer),
           delivery_due: deliveryDue,
-          selectedProduct: selectedProduct,
-          quantity: quantity,
-          unitOfMeasure: unitOfMeasure,
-          unitPrice: unitPrice,
-          brand: brand,
-          format: format,
+          items: items,
           orderNumber: orderNumber,
           notes: notes
         }}
@@ -751,98 +782,6 @@ const NewProductModal = ({ isOpen, onClose, onSuccess }) => {
   );
 };
 
-// Modal para manejar duplicados
-const DuplicateModal = ({ isOpen, duplicates, onClose, onMerge, onCreate }) => {
-  if (!duplicates) return null;
-
-  return (
-    <Modal title="⚠️ Producto Duplicado Detectado" isOpen={isOpen} onClose={onClose}>
-      <div className="space-y-4">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center mb-2">
-            <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
-            <h4 className="font-medium text-yellow-800">
-              Mismo cliente, mismo producto, mismo día
-            </h4>
-          </div>
-          <p className="text-sm text-yellow-700">
-            Ya existe un pedido del mismo cliente con este producto creado hoy.
-            Según las reglas del sistema, las cantidades deben sumarse en lugar de crear pedidos separados.
-          </p>
-        </div>
-
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h5 className="font-medium text-gray-900 mb-3">Resumen del Conflicto:</h5>
-          <div className="space-y-2">
-            {duplicates[0]?.productName && (
-              <div className="mb-2 pb-2 border-b border-gray-200">
-                <span className="text-sm font-medium text-gray-900">
-                  Producto: {duplicates[0].productName}
-                </span>
-                {duplicates[0]?.orderNumber && (
-                  <p className="text-xs text-gray-500">
-                    Pedido existente: {duplicates[0].orderNumber}
-                  </p>
-                )}
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Cantidad en pedido existente:</span>
-              <span className="font-medium">
-                {duplicates[0]?.existingQty} {duplicates[0]?.unitOfMeasure}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Cantidad nueva a agregar:</span>
-              <span className="font-medium">
-                {duplicates[0]?.newQty} {duplicates[0]?.unitOfMeasure}
-              </span>
-            </div>
-            <hr className="my-2" />
-            <div className="flex justify-between">
-              <span className="text-sm font-medium text-gray-900">Total si se suman:</span>
-              <span className="font-bold text-emerald-600">
-                {(duplicates[0]?.existingQty || 0) + (duplicates[0]?.newQty || 0)} {duplicates[0]?.unitOfMeasure}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-xs text-blue-700">
-            💡 <strong>Recomendación:</strong> Sumar las cantidades es la opción recomendada según las reglas de negocio.
-          </p>
-        </div>
-        
-        <div className="flex flex-col gap-3 pt-4">
-          <Button
-            type="button"
-            onClick={onMerge}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-          >
-            ✅ Sumar Cantidades (Recomendado)
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCreate}
-            className="border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
-            ➕ Crear Nueva Línea Separada
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            ❌ Cancelar
-          </Button>
-        </div>
-      </div>
-    </Modal>
-  );
-};
 
 // Modal de confirmación de datos
 const ConfirmationModal = ({ isOpen, onClose, orderData, onConfirm }) => {
@@ -864,7 +803,7 @@ const ConfirmationModal = ({ isOpen, onClose, orderData, onConfirm }) => {
         <div className="bg-gray-50 rounded-lg p-4 space-y-3">
           <h5 className="font-medium text-gray-900">Resumen del Pedido:</h5>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-2 gap-4 text-sm mb-4">
             <div>
               <span className="font-medium text-gray-600">Cliente:</span>
               <p className="text-gray-900">{orderData.customer?.name || 'No seleccionado'}</p>
@@ -873,37 +812,31 @@ const ConfirmationModal = ({ isOpen, onClose, orderData, onConfirm }) => {
               <span className="font-medium text-gray-600">Fecha de Entrega:</span>
               <p className="text-gray-900">{orderData.delivery_due || 'No establecida'}</p>
             </div>
-            <div>
-              <span className="font-medium text-gray-600">Producto:</span>
-              <p className="text-gray-900">{orderData.selectedProduct?.name || 'No seleccionado'}</p>
-            </div>
-            <div>
-              <span className="font-medium text-gray-600">Cantidad:</span>
-              <p className="text-gray-900">{orderData.quantity} {orderData.unitOfMeasure}</p>
-            </div>
-            <div>
-              <span className="font-medium text-gray-600">Precio Unitario:</span>
-              <p className="text-gray-900">{formatCLP(orderData.unitPrice)}</p>
-            </div>
-            <div>
-              <span className="font-medium text-gray-600">Total:</span>
-              <p className="text-gray-900 font-semibold">{formatCLP(orderData.quantity * orderData.unitPrice)}</p>
-            </div>
           </div>
 
-          {orderData.brand && (
-            <div>
-              <span className="font-medium text-gray-600">Marca:</span>
-              <p className="text-gray-900">{orderData.brand}</p>
+          {/* Lista de productos */}
+          <div>
+            <span className="font-medium text-gray-600">Productos ({orderData.items?.length || 0}):</span>
+            <div className="mt-2 space-y-2 max-h-32 overflow-y-auto">
+              {orderData.items?.map((item, index) => (
+                <div key={index} className="p-2 bg-white rounded border text-sm">
+                  <div className="font-medium">{item.productName}</div>
+                  <div className="text-gray-600 text-xs">
+                    {item.quantity} {item.unit_of_measure}
+                    {item.brand && ` • ${item.brand}`}
+                    {item.format && ` • ${item.format}`}
+                  </div>
+                  {item.notes && (
+                    <div className="text-gray-500 text-xs italic mt-1">
+                      "{item.notes}"
+                    </div>
+                  )}
+                </div>
+              )) || (
+                <p className="text-gray-500 text-sm">No hay productos agregados</p>
+              )}
             </div>
-          )}
-
-          {orderData.format && (
-            <div>
-              <span className="font-medium text-gray-600">Formato:</span>
-              <p className="text-gray-900">{orderData.format}</p>
-            </div>
-          )}
+          </div>
 
           {orderData.orderNumber && (
             <div>
@@ -914,7 +847,7 @@ const ConfirmationModal = ({ isOpen, onClose, orderData, onConfirm }) => {
 
           {orderData.notes && (
             <div>
-              <span className="font-medium text-gray-600">Observaciones:</span>
+              <span className="font-medium text-gray-600">Observaciones del pedido:</span>
               <p className="text-gray-900">{orderData.notes}</p>
             </div>
           )}

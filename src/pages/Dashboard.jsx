@@ -17,7 +17,7 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Table from '../components/ui/Table';
-import { formatCLP, formatDateTime, formatRelativeTime, getDeliveryStatus } from '../lib/utils';
+import { formatDateTime, formatRelativeTime, getDeliveryStatus } from '../lib/utils';
 import { dashboardAPI, ordersAPI } from '../services/api';
 import useAuthStore from '../stores/authStore';
 
@@ -25,7 +25,7 @@ const Dashboard = () => {
   const { user } = useAuthStore();
   const [metrics, setMetrics] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
-  const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,15 +35,13 @@ const Dashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [metricsData, ordersData, stockData] = await Promise.all([
+      const [metricsData, ordersData] = await Promise.all([
         dashboardAPI.getMetrics(),
-        dashboardAPI.getRecentOrders({ limit: 10 }),
-        dashboardAPI.getLowStockProducts()
+        dashboardAPI.getRecentOrders({ limit: 10 })
       ]);
 
       setMetrics(metricsData.data);
       setRecentOrders(ordersData.data);
-      setLowStockProducts(stockData.data);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -169,10 +167,7 @@ const Dashboard = () => {
                   </span>
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">{kpi.title}</h3>
-                <p className="text-sm text-gray-500 mb-2">{kpi.data.orders} pedidos</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {formatCLP(kpi.data.total)}
-                </p>
+                <p className="text-sm text-gray-500">{kpi.data.orders} pedidos procesados</p>
               </div>
             </Card>
           );
@@ -279,10 +274,10 @@ const Dashboard = () => {
                     </div>
                     <div className="flex items-center space-x-4">
                       <div className="text-right">
-                        <p className="text-xl font-bold text-emerald-600">
-                          {formatCLP(order.total)}
+                        <p className="text-lg font-semibold text-emerald-600">
+                          {order.items?.length || 0} productos
                         </p>
-                        <p className="text-xs text-gray-500">{order.items?.length || 0} productos</p>
+                        <p className="text-xs text-gray-500">En el pedido</p>
                       </div>
                     {canManage && (
                       <select

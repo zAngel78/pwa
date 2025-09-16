@@ -56,7 +56,7 @@ export const API_ENDPOINTS = {
   DASHBOARD: {
     METRICS: '/dashboard/metrics',
     RECENT_ORDERS: '/dashboard/recent-orders',
-    LOW_STOCK: '/dashboard/low-stock',
+    MOST_REQUESTED_PRODUCTS: '/dashboard/most-requested-products',
     STATS: '/dashboard/stats',
     TOP_PRODUCTS: '/dashboard/top-products',
     TOP_CUSTOMERS: '/dashboard/top-customers',
