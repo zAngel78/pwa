@@ -193,6 +193,9 @@ const NewOrder = () => {
         notes: notes.trim()
       };
 
+      console.log('📦 Enviando orderData:', orderData);
+      console.log('📦 Items en detalle:', items);
+
       const response = await ordersAPI.create(orderData);
 
       // Verificar si fue una consolidación automática
@@ -206,7 +209,18 @@ const NewOrder = () => {
 
     } catch (error) {
       console.error('Error creating order:', error);
-      toast.error(error.message || 'Error al crear el pedido');
+      console.error('Error response:', error.response?.data);
+
+      let errorMessage = 'Error al crear el pedido';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.details) {
+        errorMessage = error.response.data.details.join(', ');
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
