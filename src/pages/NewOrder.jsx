@@ -136,6 +136,9 @@ const NewOrder = () => {
     }
   }, [currentProduct]);
 
+  // Verificar si hay referencias faltantes en el useEffect anterior
+  // Este useEffect ya no necesita unitPrice como dependencia
+
   const handleProductSelect = (product) => {
     setSelectedProduct(product._id);
     setProductSearch(product.name);
@@ -193,7 +196,7 @@ const NewOrder = () => {
       const response = await ordersAPI.create(orderData);
 
       // Verificar si fue una consolidación automática
-      if (response.data.merged && response.data.merged > 0) {
+      if (response.data && response.data.merged && response.data.merged > 0) {
         toast.success(`¡Productos agregados al pedido existente! (${response.data.merged} productos consolidados)`);
       } else {
         toast.success('¡Pedido creado exitosamente!');
@@ -314,7 +317,6 @@ const NewOrder = () => {
                   onChange={(e) => {
                     setProductSearch(e.target.value);
                     setSelectedProduct('');
-                    setUnitPrice('');
                   }}
                   placeholder="Buscar por nombre o SKU..."
                   required
