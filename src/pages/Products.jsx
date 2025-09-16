@@ -227,27 +227,18 @@ const Products = () => {
   );
 };
 
-// Modal para nuevo producto  
+// Modal para nuevo producto
 const NewProductModal = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    sku: '',
-    brand: '',
-    format: '',
-    unit_price: ''
+    name: ''
   });
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       toast.error('El nombre es requerido');
-      return;
-    }
-
-    if (!formData.unit_price || Number(formData.unit_price) <= 0) {
-      toast.error('El precio debe ser mayor a 0');
       return;
     }
 
@@ -255,8 +246,8 @@ const NewProductModal = ({ isOpen, onClose, onSuccess }) => {
       setSaving(true);
       const productData = {
         ...formData,
-        unit_price: Number(formData.unit_price),
-        sku: formData.sku || `SKU-${Date.now()}`
+        unit_price: 0, // Sin precios en modo logístico
+        sku: `SKU-${Date.now()}` // Auto-generado
       };
       
       const response = await productsAPI.create(productData);
@@ -272,38 +263,16 @@ const NewProductModal = ({ isOpen, onClose, onSuccess }) => {
     <Modal title="Nuevo Producto" isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Nombre"
+          label="Nombre del producto"
           value={formData.name}
           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          placeholder="Ej: Producto ABC"
           required
         />
-        <Input
-          label="SKU (opcional)"
-          value={formData.sku}
-          onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
-          placeholder="Se generará automáticamente si está vacío"
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Marca (opcional)"
-            value={formData.brand}
-            onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
-          />
-          <Input
-            label="Formato (opcional)"
-            value={formData.format}
-            onChange={(e) => setFormData(prev => ({ ...prev, format: e.target.value }))}
-          />
+
+        <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
+          ℹ️ El SKU se generará automáticamente
         </div>
-        <Input
-          label="Precio"
-          type="number"
-          min="0"
-          step="0.01"
-          value={formData.unit_price}
-          onChange={(e) => setFormData(prev => ({ ...prev, unit_price: e.target.value }))}
-          required
-        />
         
         <div className="flex gap-3 justify-end pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>
@@ -322,10 +291,7 @@ const NewProductModal = ({ isOpen, onClose, onSuccess }) => {
 const EditProductModal = ({ isOpen, product, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: '',
-    sku: '',
-    brand: '',
-    format: '',
-    unit_price: ''
+    sku: ''
   });
   const [saving, setSaving] = useState(false);
 
@@ -333,10 +299,7 @@ const EditProductModal = ({ isOpen, product, onClose, onSuccess }) => {
     if (product) {
       setFormData({
         name: product.name || '',
-        sku: product.sku || '',
-        brand: product.brand || '',
-        format: product.format || '',
-        unit_price: product.unit_price?.toString() || ''
+        sku: product.sku || ''
       });
     }
   }, [product]);
@@ -349,16 +312,11 @@ const EditProductModal = ({ isOpen, product, onClose, onSuccess }) => {
       return;
     }
 
-    if (!formData.unit_price || Number(formData.unit_price) <= 0) {
-      toast.error('El precio debe ser mayor a 0');
-      return;
-    }
-
     try {
       setSaving(true);
       const productData = {
         ...formData,
-        unit_price: Number(formData.unit_price)
+        unit_price: 0 // Sin precios en modo logístico
       };
       
       const response = await productsAPI.update(product._id, productData);
@@ -374,7 +332,7 @@ const EditProductModal = ({ isOpen, product, onClose, onSuccess }) => {
     <Modal title="Editar Producto" isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Nombre"
+          label="Nombre del producto"
           value={formData.name}
           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
           required
@@ -383,28 +341,13 @@ const EditProductModal = ({ isOpen, product, onClose, onSuccess }) => {
           label="SKU"
           value={formData.sku}
           onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
+          disabled
+          className="bg-gray-50"
         />
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Marca (opcional)"
-            value={formData.brand}
-            onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
-          />
-          <Input
-            label="Formato (opcional)"
-            value={formData.format}
-            onChange={(e) => setFormData(prev => ({ ...prev, format: e.target.value }))}
-          />
+
+        <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded">
+          ℹ️ Solo se puede modificar el nombre del producto
         </div>
-        <Input
-          label="Precio"
-          type="number"
-          min="0"
-          step="0.01"
-          value={formData.unit_price}
-          onChange={(e) => setFormData(prev => ({ ...prev, unit_price: e.target.value }))}
-          required
-        />
         
         <div className="flex gap-3 justify-end pt-4">
           <Button type="button" variant="secondary" onClick={onClose}>
