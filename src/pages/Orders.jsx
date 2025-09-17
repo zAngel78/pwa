@@ -604,9 +604,9 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
     const newItem = {
       product: '',
       quantity: 1,
-      unit_of_measure: 'unidad',
-      brand: '',
-      format: '',
+      unit_of_measure: 'unidad', // Valor por defecto
+      brand: '', // Se auto-completa desde el producto
+      format: '', // Se auto-completa desde el producto
       status: formData.status || 'pendiente',
       notes: ''
     };
@@ -700,7 +700,7 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-3">
                   <Select
                     label="Producto"
                     value={item.product?._id || item.product || ''}
@@ -715,51 +715,25 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
                     ))}
                   </Select>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      label="Cantidad"
-                      type="number"
-                      min="0.1"
-                      step="0.1"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
-                      required
-                    />
-                    <Select
-                      label="Unidad"
-                      value={item.unit_of_measure}
-                      onChange={(e) => updateItem(index, 'unit_of_measure', e.target.value)}
-                    >
-                      <option value="unidad">Unidad</option>
-                      <option value="par">Par</option>
-                      <option value="metro">Metro</option>
-                      <option value="caja">Caja</option>
-                      <option value="kg">Kg</option>
-                      <option value="litro">Litro</option>
-                      <option value="pack">Pack</option>
-                    </Select>
-                  </div>
+                  <Input
+                    label="Cantidad"
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    value={item.quantity}
+                    onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
+                    required
+                    className="max-w-xs"
+                  />
+
 
 
                   <Input
-                    label="Marca (opcional)"
-                    value={item.brand || ''}
-                    onChange={(e) => updateItem(index, 'brand', e.target.value)}
+                    label="Observaciones del producto (opcional)"
+                    value={item.notes || ''}
+                    onChange={(e) => updateItem(index, 'notes', e.target.value)}
+                    placeholder="Notas específicas para este producto..."
                   />
-
-                  <Input
-                    label="Formato (opcional)"
-                    value={item.format || ''}
-                    onChange={(e) => updateItem(index, 'format', e.target.value)}
-                  />
-
-                  <div className="md:col-span-2">
-                    <Input
-                      label="Observaciones del producto (opcional)"
-                      value={item.notes || ''}
-                      onChange={(e) => updateItem(index, 'notes', e.target.value)}
-                    />
-                  </div>
                 </div>
 
               </div>
@@ -778,7 +752,7 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
             {order.items?.map((item, index) => (
               <div key={index} className="flex justify-between items-center text-sm py-1">
                 <span>{item.product?.name || 'Producto eliminado'}</span>
-                <span>{item.quantity} {item.unit_of_measure} × {formatCLP(item.unit_price)}</span>
+                <span>Cantidad: {item.quantity}</span>
               </div>
             ))}
           </div>
