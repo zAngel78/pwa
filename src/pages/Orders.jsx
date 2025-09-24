@@ -305,18 +305,18 @@ const Orders = () => {
 
     const matchesStatus = !statusFilter || order.status === statusFilter;
 
-    // Filtro de histórico (6 meses para facturados/anulados)
+    // Filtro de histórico: pedidos facturados/anulados con más de 24 horas
     const now = new Date();
-    const sixMonthsAgo = new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000);
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const orderDate = new Date(order.createdAt);
-    const isOld = orderDate < sixMonthsAgo;
+    const isOld = orderDate < twentyFourHoursAgo;
     const isHistorical = ['facturado', 'nulo'].includes(order.status) && isOld;
 
-    // Si estamos mostrando histórico, solo mostrar pedidos históricos
+    // Si estamos mostrando histórico, mostrar SOLO pedidos históricos
     if (showHistorical) {
       return matchesSearch && matchesStatus && isHistorical;
     } else {
-      // Si no estamos mostrando histórico, excluir pedidos históricos
+      // Si NO estamos mostrando histórico, mostrar todos EXCEPTO los históricos
       return matchesSearch && matchesStatus && !isHistorical;
     }
   });
@@ -332,16 +332,6 @@ const Orders = () => {
     }
   };
 
-  const handleMarkDelivered = async (orderId) => {
-    try {
-      await ordersAPI.markDelivered(orderId);
-      toast.success('Pedido marcado como entregado');
-      await loadOrders();
-    } catch (error) {
-      console.error('Error marking as delivered:', error);
-      toast.error('Error al marcar como entregado');
-    }
-  };
 
   const canManage = user?.role === 'facturador' || user?.role === 'admin';
   const canViewAll = user?.role === 'admin';
@@ -410,7 +400,7 @@ const Orders = () => {
                 className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
               />
               <span className="text-sm text-gray-700">
-                📁 Mostrar Histórico (6+ meses)
+                📁 Mostrar Histórico (24h+)
               </span>
             </label>
           </div>
@@ -496,15 +486,6 @@ const Orders = () => {
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
-                          {order.status === 'facturado' && !order.delivered_at && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleMarkDelivered(order._id)}
-                            >
-                              Entregar
-                            </Button>
-                          )}
                         </div>
                       </Table.Cell>
                     )}
