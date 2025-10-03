@@ -202,32 +202,6 @@ const Dashboard = () => {
               </div>
             </div>
           </Card>
-
-          <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
-            <div className="p-4 flex items-center space-x-4">
-              <div className="p-3 bg-amber-100 rounded-full">
-                <Clock className="w-6 h-6 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-amber-600">{(metrics.delivery.byStatus?.compra || 0) + (metrics.delivery.byStatus?.facturado || 0) - (metrics.delivery.delivered || 0)}</p>
-                <p className="text-sm font-medium text-gray-700">En Proceso</p>
-                <p className="text-xs text-amber-600">Por entregar</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="border-0 shadow-md hover:shadow-lg transition-shadow duration-300">
-            <div className="p-4 flex items-center space-x-4">
-              <div className="p-3 bg-green-100 rounded-full">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-green-600">{metrics.delivery.delivered || 0}</p>
-                <p className="text-sm font-medium text-gray-700">Entregados</p>
-                <p className="text-xs text-green-600">Completados</p>
-              </div>
-            </div>
-          </Card>
         </div>
       )}
 

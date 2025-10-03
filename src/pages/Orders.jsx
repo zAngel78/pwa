@@ -9,7 +9,7 @@ import Badge from '../components/ui/Badge';
 import Table from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
-import { formatDateTime, formatDate, getDeliveryStatus } from '../lib/utils';
+import { formatDateTime, formatDate } from '../lib/utils';
 import { ordersAPI, customersAPI, productsAPI } from '../services/api';
 import useAuthStore from '../stores/authStore';
 
@@ -227,10 +227,6 @@ const Orders = () => {
                       <span class="info-label">Creado:</span>
                       ${formatDateTime(order.createdAt)}
                     </div>
-                    <div class="info-item">
-                      <span class="info-label">Entrega:</span>
-                      ${formatDate(order.delivery_due)}
-                    </div>
                   </div>
                   <div>
                     ${order.location ? `
@@ -305,19 +301,29 @@ const Orders = () => {
 
     const matchesStatus = !statusFilter || order.status === statusFilter;
 
-    // Filtro de histórico: pedidos facturados/anulados con más de 24 horas
-    const now = new Date();
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const orderDate = new Date(order.createdAt);
-    const isOld = orderDate < twentyFourHoursAgo;
-    const isHistorical = ['facturado', 'nulo'].includes(order.status) && isOld;
+    // Filtro de histórico:
+    // - Checked: mostrar facturado/nulo con más de 6 meses + todos los otros estados
+    // - Unchecked: mostrar facturado/nulo de últimas 24h + todos los otros estados
+    const isFacturadoOrNulo = ['facturado', 'nulo'].includes(order.status);
 
-    // Si estamos mostrando histórico, mostrar SOLO pedidos históricos
-    if (showHistorical) {
-      return matchesSearch && matchesStatus && isHistorical;
+    if (isFacturadoOrNulo) {
+      const now = new Date();
+      const orderDate = new Date(order.createdAt);
+
+      if (showHistorical) {
+        // Mostrar solo facturado/nulo con más de 6 meses
+        const sixMonthsAgo = new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000);
+        const isOlderThan6Months = orderDate < sixMonthsAgo;
+        return matchesSearch && matchesStatus && isOlderThan6Months;
+      } else {
+        // Mostrar solo facturado/nulo de últimas 24 horas
+        const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const isWithin24Hours = orderDate >= twentyFourHoursAgo;
+        return matchesSearch && matchesStatus && isWithin24Hours;
+      }
     } else {
-      // Si NO estamos mostrando histórico, mostrar todos EXCEPTO los históricos
-      return matchesSearch && matchesStatus && !isHistorical;
+      // Para otros estados, siempre mostrar si coinciden con búsqueda y filtro
+      return matchesSearch && matchesStatus;
     }
   });
 
@@ -400,7 +406,7 @@ const Orders = () => {
                 className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
               />
               <span className="text-sm text-gray-700">
-                📁 Mostrar Histórico (24h+)
+                📁 Mostrar Histórico (6 meses+)
               </span>
             </label>
           </div>
@@ -417,13 +423,11 @@ const Orders = () => {
                 <Table.Head>Cliente</Table.Head>
                 <Table.Head>Items</Table.Head>
                 <Table.Head>Estado</Table.Head>
-                <Table.Head>Entrega</Table.Head>
                 {canManage && <Table.Head>Acciones</Table.Head>}
               </Table.Row>
             </Table.Header>
             <Table.Body>
               {filteredOrders.map((order) => {
-                const deliveryStatus = getDeliveryStatus(order);
                 const createdDate = new Date(order.createdAt);
                 const today = new Date();
                 const daysDiff = Math.floor((today - createdDate) / (1000 * 60 * 60 * 24));
@@ -454,19 +458,6 @@ const Orders = () => {
                       <Badge variant={order.status} size="sm">
                         {order.status}
                       </Badge>
-                    </Table.Cell>
-                    <Table.Cell>
-                      <div className="text-sm">
-                        <div>{formatDateTime(order.delivery_due)}</div>
-                        {deliveryStatus === 'vencido' && (
-                          <div className="text-red-600 font-medium">Vencido</div>
-                        )}
-                        {order.delivered_at && (
-                          <div className="text-green-600">
-                            Entregado: {formatDateTime(order.delivered_at)}
-                          </div>
-                        )}
-                      </div>
                     </Table.Cell>
                     {canManage && (
                       <Table.Cell>
@@ -532,7 +523,6 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
     status: '',
     location: '',
     notes: '',
-    delivery_due: '',
     customer: ''
   });
   const [saving, setSaving] = useState(false);
@@ -544,12 +534,10 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
 
   useEffect(() => {
     if (order) {
-      const deliveryDate = order.delivery_due ? new Date(order.delivery_due).toISOString().slice(0, 16) : '';
       setFormData({
         status: order.status || '',
         location: order.location || '',
         notes: order.notes || '',
-        delivery_due: deliveryDate,
         customer: order.customer?._id || ''
       });
       setItems(order.items || []);
@@ -767,17 +755,6 @@ const EditOrderModal = ({ isOpen, order, onClose, onSuccess }) => {
               </option>
             ))}
           </Select>
-        )}
-
-        {/* Fecha de entrega - solo para admin/facturador */}
-        {canEditLocation && (
-          <Input
-            label="Fecha de entrega"
-            type="datetime-local"
-            value={formData.delivery_due}
-            onChange={(e) => setFormData(prev => ({ ...prev, delivery_due: e.target.value }))}
-            required
-          />
         )}
 
         {/* Campo Lugar - solo para facturador */}

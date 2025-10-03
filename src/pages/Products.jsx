@@ -215,8 +215,8 @@ const Products = () => {
       <BulkImport
         isOpen={showBulkImport}
         onClose={() => setShowBulkImport(false)}
-        onSuccess={(importedProducts) => {
-          setProducts(prev => [...importedProducts, ...prev]);
+        onSuccess={() => {
+          loadProducts();
           setShowBulkImport(false);
         }}
         type="products"

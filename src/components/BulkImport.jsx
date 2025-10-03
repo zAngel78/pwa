@@ -29,15 +29,10 @@ const BulkImport = ({ isOpen, onClose, onSuccess, type = 'customers', title, api
       }
     },
     products: {
-      requiredFields: ['name', 'unit_price'],
-      optionalFields: ['sku', 'brand', 'format', 'unit_of_measure'],
+      requiredFields: ['name'],
+      optionalFields: [],
       sampleData: {
-        name: 'Producto Ejemplo',
-        sku: 'PROD-001',
-        brand: 'Marca Ejemplo',
-        format: '500ml',
-        unit_price: '2500',
-        unit_of_measure: 'unidad'
+        name: 'Producto Ejemplo'
       }
     }
   };
